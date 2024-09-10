@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestGetRequest(t *testing.T) {
+func TestRequest(t *testing.T) {
 	ctx := context.Background()
 	server, cleanup := setupTestServer()
 	defer cleanup()
