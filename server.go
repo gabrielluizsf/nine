@@ -16,7 +16,7 @@ type Request struct {
 
 // Body returns the body of the HTTP request.
 //
-//	b := res.Body().Bytes()
+//	b := req.Body().Bytes()
 func (r *Request) Body() *bytes.Buffer {
 	b, _ := io.ReadAll(r.req.Body)
 	defer r.req.Body.Close()
