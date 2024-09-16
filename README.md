@@ -49,8 +49,7 @@ func main() {
         return
     }
     defer res.Body.Close()
-
-    // Utilize a resposta
+    // use the response
 }
 ```
 
