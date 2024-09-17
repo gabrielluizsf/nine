@@ -73,6 +73,12 @@ func main() {
         return res.Send([]byte("Hello World"))
     })
 
+    server.Get("/hello/{name}", func(req *nine.Request, res *nine.Response) error {
+        name := req.Param("name")
+        message := fmt.Sprintf("Hello %s", name)
+        return res.Send([]byte(message))
+    })
+
     log.Fatal(server.Listen())
 }
 ```
