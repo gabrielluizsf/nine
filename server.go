@@ -23,6 +23,31 @@ func (r *Request) Body() *bytes.Buffer {
 	return bytes.NewBuffer(b)
 }
 
+// Method returns the HTTP request method.
+//
+//	method := req.Method()
+func (r *Request) Method() string {
+	return r.req.Method
+}
+
+// Path returns the HTTP request url path
+//
+//	endpoint := req.Path()
+func (r *Request) Path() string {
+	return r.req.URL.Path
+}
+
+// Param returns the HTTP request path value
+//
+//	server.Get("/hello/{name}", func(req *nine.Request, res *nine.Response) error {
+//		name := req.Param("name")
+//		message := fmt.Sprintf("Hello %s", name)
+//		return res.Send([]byte(message))
+//	})
+func (r *Request) Param(name string) string {
+	return r.req.PathValue(name)
+}
+
 // Header retrieves the value of the specified HTTP header from the request.
 //
 //	contentType := req.Header("Content-Type")
