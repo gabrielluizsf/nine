@@ -87,6 +87,22 @@ func (r *Response) SetHeader(key, value string) {
 	r.res.Header().Set(key, value)
 }
 
+// ServeFiles returns a Handler that serves static files from the specified http.FileSystem.
+// It uses http.FileServer to handle requests for static files and returns a 404 error if the file is not found.
+//
+// Parameters:
+//  - path: An http.FileSystem representing the root directory from which static files will be served.
+//
+// Returns:
+//  - A Handler function that takes a Request and Response, serving the files 
+func ServeFiles(path http.FileSystem) Handler {
+	staticFileSystem := http.FileServer(path)
+	return func(req *Request, res *Response) error {
+		staticFileSystem.ServeHTTP(res.res, req.req)
+		return nil
+	}
+}
+
 const defaultStatusCode = http.StatusOK
 
 // Writes the response with the provided byte slice as the body,
