@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -153,6 +154,35 @@ func TestMiddleware(t *testing.T) {
 	}
 	if w.Body.String() != message {
 		t.Errorf("expected body 'Hello', got '%s'", w.Body.String())
+	}
+}
+
+func TestServeFiles(t *testing.T) {
+	dirPath := "./temp"
+	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	filePath := dirPath + "/index.html"
+	f, err := os.Create(filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	defer os.RemoveAll(dirPath)
+	b := []byte("<h1>Hello World</h1>")
+	f.Write(b)
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+	req := Request{req: r}
+	res := Response{res: w}
+	handler := ServeFiles(http.Dir(dirPath))
+	if err := handler(&req, &res); err != nil {
+		t.Fatal(err)
+	}
+	result := w.Body.String()
+	expected := string(b)
+	if result != expected {
+		t.Fatalf("result: %s, expected: %s", result, expected)
 	}
 }
 
