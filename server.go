@@ -91,10 +91,10 @@ func (r *Response) SetHeader(key, value string) {
 // It uses http.FileServer to handle requests for static files and returns a 404 error if the file is not found.
 //
 // Parameters:
-//  - path: An http.FileSystem representing the root directory from which static files will be served.
+//   - path: An http.FileSystem representing the root directory from which static files will be served.
 //
 // Returns:
-//  - A Handler function that takes a Request and Response, serving the files 
+//   - A Handler function that takes a Request and Response, serving the files
 func ServeFiles(path http.FileSystem) Handler {
 	staticFileSystem := http.FileServer(path)
 	return func(req *Request, res *Response) error {
@@ -152,9 +152,10 @@ func (r *Response) JSON(data JSON) error {
 type Handler func(req *Request, res *Response) error
 
 type Server struct {
-	mux    *http.ServeMux
-	routes []Router
-	addr   string
+	mux               *http.ServeMux
+	routes            []Router
+	globalMiddlewares []Handler
+	addr              string
 }
 
 // NewServer creates a new `Server` instance bound to the specified port.
@@ -171,6 +172,25 @@ type Router struct {
 	pattern     string
 	handler     Handler
 	middlewares []Handler
+}
+
+// Use adds a global middleware to the server's middleware stack.
+//
+// This method allows you to register middleware that will be executed for all
+// routes on the server, regardless of path or HTTP method.
+//
+//	server.Use(func(req *Request, res *Response) error {
+//		 slog.Info("nine[router]:", "method", req.Method(), "path", req.Path())
+//		 return nil
+//	})
+//
+//	server.Get("/login/{name}", func(req *Request, res *Response) error {
+//		 name := req.Param("name")
+//		 loginMessage := fmt.Sprintf("Welcome %s", name)
+//		 return res.JSON(JSON{"message": loginMessage})
+//	})
+func (s *Server) Use(middleware Handler) {
+	s.globalMiddlewares = append(s.globalMiddlewares, middleware)
 }
 
 // Get registers a route for handling GET requests at the specified endpoint.
@@ -231,16 +251,17 @@ func (s *Server) Delete(endpoint string, handlers ...Handler) error {
 //	}
 //	log.Fatal(server.Listen())
 func (s *Server) Listen() error {
+	s.registerRoutes()
+	return http.ListenAndServe(s.addr, s.mux)
+}
+
+func (s *Server) registerRoutes() {
 	for _, route := range s.routes {
 		finalHandler := httpHandler(route.handler)
-
-		for i := len(route.middlewares) - 1; i >= 0; i-- {
-			finalHandler = httpMiddleware(route.middlewares[i], finalHandler)
-		}
-
+		finalHandler = registerMiddlewares(finalHandler, s.globalMiddlewares...)
+		finalHandler = registerMiddlewares(finalHandler, route.middlewares...)
 		s.mux.Handle(route.pattern, finalHandler)
 	}
-	return http.ListenAndServe(s.addr, s.mux)
 }
 
 func (s *Server) registerRoute(method, endpoint string, handlers ...Handler) error {
@@ -256,6 +277,13 @@ func (s *Server) registerRoute(method, endpoint string, handlers ...Handler) err
 	}
 	s.routes = append(s.routes, r)
 	return nil
+}
+
+func registerMiddlewares(handler http.Handler, middlewares ...Handler) http.Handler {
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		handler = httpMiddleware(middlewares[i], handler)
+	}
+	return handler
 }
 
 type ServerError struct {
