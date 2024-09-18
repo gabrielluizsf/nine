@@ -3,7 +3,9 @@ package nine
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -151,5 +153,28 @@ func TestMiddleware(t *testing.T) {
 	}
 	if w.Body.String() != message {
 		t.Errorf("expected body 'Hello', got '%s'", w.Body.String())
+	}
+}
+
+func TestUse(t *testing.T) {
+	server := NewServer(5050)
+	message := "INFO nine[router]: method=GET path=/login/gabrielluizsf"
+	server.Use(func(req *Request, res *Response) error {
+		slog.Info("nine[router]:", "method", req.Method(), "path", req.Path())
+		res.SetHeader("Message", message)
+		return nil
+	})
+	server.Get("/login/{name}", func(req *Request, res *Response) error {
+		name := req.Param("name")
+		loginMessage := fmt.Sprintf("Welcome %s", name)
+		return res.JSON(JSON{"message": loginMessage})
+	})
+	server.registerRoutes()
+	req := httptest.NewRequest(http.MethodGet, "/login/gabrielluizsf", nil)
+	w := httptest.NewRecorder()
+	server.mux.ServeHTTP(w, req)
+	result := w.Header().Get("Message")
+	if result != message {
+		t.Fatalf("result: %s, expected: %s", result, message)
 	}
 }
