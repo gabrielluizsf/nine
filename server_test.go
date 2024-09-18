@@ -187,8 +187,8 @@ func TestServeFiles(t *testing.T) {
 }
 
 func TestUse(t *testing.T) {
+	message := "new request received"
 	server := NewServer(5050)
-	message := "INFO nine[router]: method=GET path=/login/gabrielluizsf"
 	server.Use(func(req *Request, res *Response) error {
 		slog.Info("nine[router]:", "method", req.Method(), "path", req.Path())
 		res.SetHeader("Message", message)
@@ -199,8 +199,52 @@ func TestUse(t *testing.T) {
 		loginMessage := fmt.Sprintf("Welcome %s", name)
 		return res.JSON(JSON{"message": loginMessage})
 	})
+	server.Post("/account/created", func(req *Request, res *Response) error {
+		return res.JSON(JSON{"message": "account created"})
+	})
+	server.Patch("/account/{id}", func(req *Request, res *Response) error {
+		id := req.Param("id")
+		var body struct {
+			Name string `json:"name"`
+		}
+		if err := DecodeJSON(req.Body().Bytes(), &body); err != nil {
+			res.SendStatus(http.StatusBadRequest)
+			return nil
+		}
+		updateMessage := fmt.Sprintf("Account name with ID %s is changed to %s", id, body.Name)
+		return res.JSON(JSON{"message": updateMessage})
+	})
+
+	type post struct {
+		Id          string `json:"id"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
+	}
+	server.Put("/account/{id}/post", func(req *Request, res *Response) error {
+		id := req.Param("id")
+		var body post
+		if err := DecodeJSON(req.Body().Bytes(), &body); err != nil {
+			res.SendStatus(http.StatusBadRequest)
+			return nil
+		}
+		updateMessage := fmt.Sprintf("Post with id %s is changed to %s", id, body)
+		return res.JSON(JSON{"message": updateMessage})
+	})
+	server.Delete("/account/{id}", func(req *Request, res *Response) error {
+		_ = req.Param("id")
+		res.SendStatus(http.StatusNoContent)
+		return nil
+	})
 	server.registerRoutes()
-	req := httptest.NewRequest(http.MethodGet, "/login/gabrielluizsf", nil)
+	assertEndpoint(t, http.MethodGet, "/login/gabrielluizsf", message, server)
+	assertEndpoint(t, http.MethodPost, "/account/created", message, server)
+	assertEndpoint(t, http.MethodPatch, "/account/1", message, server)
+	assertEndpoint(t, http.MethodPut, "/account/1/post", message, server)
+	assertEndpoint(t, http.MethodDelete, "/account/1", message, server)
+}
+
+func assertEndpoint(t *testing.T, method, endpoint, message string, server *Server) {
+	req := httptest.NewRequest(method, endpoint, nil)
 	w := httptest.NewRecorder()
 	server.mux.ServeHTTP(w, req)
 	result := w.Header().Get("Message")
