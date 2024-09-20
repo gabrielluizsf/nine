@@ -259,6 +259,7 @@ func (s *Server) Listen() error {
 func (s *Server) setAddr() {
 	if len(s.port) == 0 {
 		s.addr = ":0"
+		return
 	}
 	s.addr = fmt.Sprintf(":%s", s.port)
 }
