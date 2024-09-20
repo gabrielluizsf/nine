@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"regexp"
 )
 
@@ -299,6 +300,44 @@ func registerMiddlewares(handler http.Handler, middlewares ...Handler) http.Hand
 		handler = httpMiddleware(middlewares[i], handler)
 	}
 	return handler
+}
+
+type TestServer struct {
+	*Server
+}
+
+// Test configures the Server for testing.
+//
+//		server := nine.NewServer(8080)
+//		message := "Hello World"
+//		server.Get("/helloWorld", func(req *Request, res *Response) error {
+//			return res.Send([]byte(message))
+//		})
+//		testServer := server.Test()
+func (s *Server) Test() *TestServer {
+	s.mux = http.NewServeMux()
+	s.registerRoutes()
+	s.setAddr()
+	return &TestServer{Server: s}
+}
+
+// Request sends a simulated HTTP request to the server and captures
+// the response in a ResponseRecorder, allowing the result to be inspected.
+//
+//		server := nine.NewServer(8080)
+//		message := "Hello World"
+//		server.Get("/helloWorld", func(req *Request, res *Response) error {
+//		   return res.Send([]byte(message))
+//		})
+//	    res := server.Test().Request(req)
+//		result := res.Body.String()
+//		if result != message {
+//			t.Fatalf("result: %s, expected: %s", result, message)
+//		}
+func (t *TestServer) Request(r *http.Request) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	t.mux.ServeHTTP(w, r)
+	return w
 }
 
 type ServerError struct {
