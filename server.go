@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 )
 
 type Request struct {
@@ -280,12 +281,17 @@ func (s *Server) registerRoute(method, endpoint string, handlers ...Handler) err
 	handler := handlers[len(handlers)-1]
 
 	r := Router{
-		pattern:     fmt.Sprintf("%s %s", method, endpoint),
+		pattern:     fmt.Sprintf("%s %s", method, s.transformPath(endpoint)),
 		handler:     handler,
 		middlewares: handlers[:len(handlers)-1],
 	}
 	s.routes = append(s.routes, r)
 	return nil
+}
+
+func (s *Server) transformPath(path string) string {
+	re := regexp.MustCompile(`:(\w+)`)
+	return re.ReplaceAllString(path, "{$1}")
 }
 
 func registerMiddlewares(handler http.Handler, middlewares ...Handler) http.Handler {
