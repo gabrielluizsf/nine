@@ -155,16 +155,16 @@ type Server struct {
 	mux               *http.ServeMux
 	routes            []Router
 	globalMiddlewares []Handler
-	addr              string
+	addr, port        string
 }
 
 // NewServer creates a new `Server` instance bound to the specified port.
 // It accepts both integer and string types for the port.
 func NewServer[P int | string](port P) *Server {
 	return &Server{
-		addr:   fmt.Sprintf(":%v", port),
 		mux:    http.NewServeMux(),
 		routes: make([]Router, 0),
+		port:   fmt.Sprint(port),
 	}
 }
 
@@ -252,7 +252,16 @@ func (s *Server) Delete(endpoint string, handlers ...Handler) error {
 //	log.Fatal(server.Listen())
 func (s *Server) Listen() error {
 	s.registerRoutes()
+	s.setAddr()
 	return http.ListenAndServe(s.addr, s.mux)
+}
+
+func (s *Server) setAddr() {
+	if len(s.port) == 0 {
+		s.addr = ":0"
+		return
+	}
+	s.addr = fmt.Sprintf(":%s", s.port)
 }
 
 func (s *Server) registerRoutes() {

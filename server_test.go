@@ -186,6 +186,22 @@ func TestServeFiles(t *testing.T) {
 	}
 }
 
+func TestSetAddr(t *testing.T) {
+	port := "7080"
+	server := NewServer(port)
+	server.setAddr()
+	expected := ":" + port
+	if server.addr != expected {
+		t.Fatalf("result %s, expected %s", server.addr, expected)
+	}
+	server = NewServer("")
+	server.setAddr()
+	expected = ":0"
+	if server.addr != expected {
+		t.Fatalf("result %s, expected %s", server.addr, expected)
+	}
+}
+
 func TestUse(t *testing.T) {
 	message := "new request received"
 	server := NewServer(5050)
