@@ -216,6 +216,52 @@ func TestTransformPath(t *testing.T) {
 	}
 }
 
+func TestTestServer(t *testing.T) {
+	server := NewServer(8080)
+	message := "Hello World"
+	server.Get("/helloWorld", func(req *Request, res *Response) error {
+		return res.Send([]byte(message))
+	})
+	server.Post("/user/welcome", func(req *Request, res *Response) error {
+		var body struct {
+			Usename string `json:"username"`
+		}
+		if err := DecodeJSON(req.Body().Bytes(), &body); err != nil {
+			res.SendStatus(http.StatusBadRequest)
+			return nil
+		}
+		return res.JSON(JSON{"message": fmt.Sprintf("Welcome %s", body.Usename)})
+	})
+	req, err := http.NewRequest(http.MethodGet, "/helloWorld", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res := server.Test().Request(req)
+	result := res.Body.String()
+	if result != message {
+		t.Fatalf("result: %s, expected: %s", result, message)
+	}
+	buf, err := JSON{"username": "gabrielluizsf"}.Buffer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err = http.NewRequest(http.MethodPost, "/user/welcome", buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res = server.Test().Request(req)
+	var response struct {
+		Message string `json:"message"`
+	}
+	expected := "Welcome gabrielluizsf"
+	if err := DecodeJSON(res.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Message != expected {
+		t.Fatalf("result: %s, expected: %s", response.Message, expected)
+	}
+}
+
 func TestUse(t *testing.T) {
 	message := "new request received"
 	server := NewServer(5050)
