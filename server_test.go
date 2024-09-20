@@ -202,16 +202,16 @@ func TestSetAddr(t *testing.T) {
 	}
 }
 
-func TestTransformPath(t *testing.T){
+func TestTransformPath(t *testing.T) {
 	expected := "/user/{id}/messages/{name}"
 	server := NewServer(8413)
 	result := server.transformPath("/user/:id/messages/:name")
-	if result != expected{
+	if result != expected {
 		t.Fatalf("result %s, expected %s", result, expected)
 	}
 	expected = "/post/{postId}/{comment}/{commentId}/{username}"
 	result = server.transformPath("/post/{postId}/:comment/{commentId}/:username")
-	if result != expected{
+	if result != expected {
 		t.Fatalf("result %s, expected %s", result, expected)
 	}
 }
