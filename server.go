@@ -12,6 +12,260 @@ import (
 	"regexp"
 )
 
+type Handler func(req *Request, res *Response) error
+
+type Server struct {
+	mux               *http.ServeMux
+	routes            []Router
+	globalMiddlewares []Handler
+	addr, port        string
+}
+
+type Router struct {
+	pattern     string
+	handler     Handler
+	middlewares []Handler
+}
+
+// NewServer creates a new `Server` instance bound to the specified port.
+// It accepts both integer and string types for the port.
+func NewServer[P int | string](port P) *Server {
+	return &Server{
+		mux:    http.NewServeMux(),
+		routes: make([]Router, 0),
+		port:   fmt.Sprint(port),
+	}
+}
+
+// Listen starts the HTTP server, listening on the configured address, and binds all registered routes and middleware.
+//
+//	server := nine.NewServer(5050)
+//	server.Get("/hello", func(req *nine.Request, res *nine.Response) error {
+//	     return res.Send([]byte("Hello World"))
+//	}
+//	log.Fatal(server.Listen())
+func (s *Server) Listen() error {
+	s.registerRoutes()
+	s.setAddr()
+	return http.ListenAndServe(s.addr, s.mux)
+}
+
+func (s *Server) setAddr() {
+	if len(s.port) == 0 {
+		s.addr = ":0"
+		return
+	}
+	s.addr = fmt.Sprintf(":%s", s.port)
+}
+
+func (s *Server) registerRoutes() {
+	for _, route := range s.routes {
+		finalHandler := httpHandler(route.handler)
+		finalHandler = registerMiddlewares(finalHandler, s.globalMiddlewares...)
+		finalHandler = registerMiddlewares(finalHandler, route.middlewares...)
+		s.mux.Handle(route.pattern, finalHandler)
+	}
+}
+
+func (s *Server) registerRoute(method, endpoint string, handlers ...Handler) error {
+	if len(handlers) == 0 {
+		return errors.New("put a handler")
+	}
+	handler := handlers[len(handlers)-1]
+
+	r := Router{
+		pattern:     fmt.Sprintf("%s %s", method, s.transformPath(endpoint)),
+		handler:     handler,
+		middlewares: handlers[:len(handlers)-1],
+	}
+	s.routes = append(s.routes, r)
+	return nil
+}
+
+func (s *Server) transformPath(path string) string {
+	re := regexp.MustCompile(`:(\w+)`)
+	return re.ReplaceAllString(path, "{$1}")
+}
+
+// Use adds a global middleware to the server's middleware stack.
+//
+// This method allows you to register middleware that will be executed for all
+// routes on the server, regardless of path or HTTP method.
+//
+//	server.Use(func(req *Request, res *Response) error {
+//		 slog.Info("nine[router]:", "method", req.Method(), "path", req.Path())
+//		 return nil
+//	})
+//
+//	server.Get("/login/{name}", func(req *Request, res *Response) error {
+//		 name := req.Param("name")
+//		 loginMessage := fmt.Sprintf("Welcome %s", name)
+//		 return res.JSON(JSON{"message": loginMessage})
+//	})
+func (s *Server) Use(middleware Handler) {
+	s.globalMiddlewares = append(s.globalMiddlewares, middleware)
+}
+
+// Get registers a route for handling GET requests at the specified endpoint.
+//
+//	server := nine.NewServer(5050)
+//	server.Get("/hello", func(req *nine.Request, res *nine.Response) error {
+//	     return res.Send([]byte("Hello World"))
+//	})
+func (s *Server) Get(endpoint string, handlers ...Handler) error {
+	return s.registerRoute(http.MethodGet, endpoint, handlers...)
+}
+
+// Post registers a route for POST requests at the specified endpoint.
+//
+//		server := nine.NewServer(5050)
+//		server.Post("/sayHello", func(req *nine.Request, res *nine.Response) error {
+//			 var body struct{
+//				Name string `json:"name"`
+//	         }
+//	         if err := nine.DecodeJSON(req.Body().Bytes(), &body); err != nil {
+//				return res.Status(http.StatusBadRequest).JSON(nine.JSON{"err": "invalid body"})
+//	      	 }
+//		  	 return res.Send([]byte("Hello "+body.Name))
+//		})
+func (s *Server) Post(endpoint string, handlers ...Handler) error {
+	return s.registerRoute(http.MethodPost, endpoint, handlers...)
+}
+
+// Put registers a route for PUT requests at the specified endpoint.
+//
+//	server := nine.NewServer(5050)
+//	server.Put("/user/change", handlers...)
+func (s *Server) Put(endpoint string, handlers ...Handler) error {
+	return s.registerRoute(http.MethodPut, endpoint, handlers...)
+}
+
+// Patch registers a route for PATCH requests at the specified endpoint.
+//
+//	server := nine.NewServer(5050)
+//	server.Patch("/version/update", handlers...)
+func (s *Server) Patch(endpoint string, handlers ...Handler) error {
+	return s.registerRoute(http.MethodPatch, endpoint, handlers...)
+}
+
+// Delete registers a route for DELETE requests at the specified endpoint.
+//
+//	server := nine.NewServer(5050)
+//	server.Delete("/account/delete", handlers...)
+func (s *Server) Delete(endpoint string, handlers ...Handler) error {
+	return s.registerRoute(http.MethodDelete, endpoint, handlers...)
+}
+
+func registerMiddlewares(handler http.Handler, middlewares ...Handler) http.Handler {
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		handler = httpMiddleware(middlewares[i], handler)
+	}
+	return handler
+}
+
+type TestServer struct {
+	*Server
+}
+
+// Test configures the Server for testing.
+//
+//	server := nine.NewServer(8080)
+//	message := "Hello World"
+//	server.Get("/helloWorld", func(req *Request, res *Response) error {
+//		return res.Send([]byte(message))
+//	})
+//	testServer := server.Test()
+func (s *Server) Test() *TestServer {
+	s.mux = http.NewServeMux()
+	s.registerRoutes()
+	s.setAddr()
+	return &TestServer{Server: s}
+}
+
+// Request sends a simulated HTTP request to the server and captures
+// the response in a ResponseRecorder, allowing the result to be inspected.
+//
+//		server := nine.NewServer(8080)
+//		message := "Hello World"
+//		server.Get("/helloWorld", func(req *Request, res *Response) error {
+//		   return res.Send([]byte(message))
+//		})
+//	    res := server.Test().Request(req)
+//		result := res.Body.String()
+//		if result != message {
+//			t.Fatalf("result: %s, expected: %s", result, message)
+//		}
+func (t *TestServer) Request(r *http.Request) *httptest.ResponseRecorder {
+	w := httptest.NewRecorder()
+	t.mux.ServeHTTP(w, r)
+	return w
+}
+
+type ServerError struct {
+	StatusCode  int
+	ContentType string
+	Err         error
+}
+
+func (e *ServerError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *ServerError) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if e.Err != nil {
+		w.Header().Set("Content-Type", e.ContentType)
+
+		if e.ContentType == "application/json" {
+			if e.StatusCode >= 100 {
+				w.WriteHeader(e.StatusCode)
+			}
+			b, err := JSON{
+				"err": e.Err.Error(),
+			}.Bytes()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Write(b)
+			return
+		}
+
+		http.Error(w, e.Err.Error(), e.StatusCode)
+		return
+	}
+}
+
+func httpMiddleware(m Handler, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		req := Request{req: r}
+		res := Response{res: w}
+		if err := m(&req, &res); err != nil {
+			if srvErr, ok := err.(*ServerError); ok && srvErr != nil {
+				srvErr.ServeHTTP(w, r)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func httpHandler(h Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		req := Request{req: r}
+		res := Response{res: w}
+		if err := h(&req, &res); err != nil {
+			if srvErr, ok := err.(*ServerError); ok && srvErr != nil {
+				srvErr.ServeHTTP(w, r)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
 type Request struct {
 	req *http.Request
 }
@@ -149,258 +403,4 @@ func (r *Response) JSON(data JSON) error {
 	}
 	r.res.WriteHeader(r.statusCode)
 	return json.NewEncoder(r.res).Encode(data)
-}
-
-type Handler func(req *Request, res *Response) error
-
-type Server struct {
-	mux               *http.ServeMux
-	routes            []Router
-	globalMiddlewares []Handler
-	addr, port        string
-}
-
-// NewServer creates a new `Server` instance bound to the specified port.
-// It accepts both integer and string types for the port.
-func NewServer[P int | string](port P) *Server {
-	return &Server{
-		mux:    http.NewServeMux(),
-		routes: make([]Router, 0),
-		port:   fmt.Sprint(port),
-	}
-}
-
-type Router struct {
-	pattern     string
-	handler     Handler
-	middlewares []Handler
-}
-
-// Use adds a global middleware to the server's middleware stack.
-//
-// This method allows you to register middleware that will be executed for all
-// routes on the server, regardless of path or HTTP method.
-//
-//	server.Use(func(req *Request, res *Response) error {
-//		 slog.Info("nine[router]:", "method", req.Method(), "path", req.Path())
-//		 return nil
-//	})
-//
-//	server.Get("/login/{name}", func(req *Request, res *Response) error {
-//		 name := req.Param("name")
-//		 loginMessage := fmt.Sprintf("Welcome %s", name)
-//		 return res.JSON(JSON{"message": loginMessage})
-//	})
-func (s *Server) Use(middleware Handler) {
-	s.globalMiddlewares = append(s.globalMiddlewares, middleware)
-}
-
-// Get registers a route for handling GET requests at the specified endpoint.
-//
-//	server := nine.NewServer(5050)
-//	server.Get("/hello", func(req *nine.Request, res *nine.Response) error {
-//	     return res.Send([]byte("Hello World"))
-//	})
-func (s *Server) Get(endpoint string, handlers ...Handler) error {
-	return s.registerRoute(http.MethodGet, endpoint, handlers...)
-}
-
-// Post registers a route for POST requests at the specified endpoint.
-//
-//		server := nine.NewServer(5050)
-//		server.Post("/sayHello", func(req *nine.Request, res *nine.Response) error {
-//			 var body struct{
-//				Name string `json:"name"`
-//	         }
-//	         if err := nine.DecodeJSON(req.Body().Bytes(), &body); err != nil {
-//				return res.Status(http.StatusBadRequest).JSON(nine.JSON{"err": "invalid body"})
-//	      	 }
-//		  	 return res.Send([]byte("Hello "+body.Name))
-//		})
-func (s *Server) Post(endpoint string, handlers ...Handler) error {
-	return s.registerRoute(http.MethodPost, endpoint, handlers...)
-}
-
-// Put registers a route for PUT requests at the specified endpoint.
-//
-//	server := nine.NewServer(5050)
-//	server.Put("/user/change", handlers...)
-func (s *Server) Put(endpoint string, handlers ...Handler) error {
-	return s.registerRoute(http.MethodPut, endpoint, handlers...)
-}
-
-// Patch registers a route for PATCH requests at the specified endpoint.
-//
-//	server := nine.NewServer(5050)
-//	server.Patch("/version/update", handlers...)
-func (s *Server) Patch(endpoint string, handlers ...Handler) error {
-	return s.registerRoute(http.MethodPatch, endpoint, handlers...)
-}
-
-// Delete registers a route for DELETE requests at the specified endpoint.
-//
-//	server := nine.NewServer(5050)
-//	server.Delete("/account/delete", handlers...)
-func (s *Server) Delete(endpoint string, handlers ...Handler) error {
-	return s.registerRoute(http.MethodDelete, endpoint, handlers...)
-}
-
-// Listen starts the HTTP server, listening on the configured address, and binds all registered routes and middleware.
-//
-//	server := nine.NewServer(5050)
-//	server.Get("/hello", func(req *nine.Request, res *nine.Response) error {
-//	     return res.Send([]byte("Hello World"))
-//	}
-//	log.Fatal(server.Listen())
-func (s *Server) Listen() error {
-	s.registerRoutes()
-	s.setAddr()
-	return http.ListenAndServe(s.addr, s.mux)
-}
-
-func (s *Server) setAddr() {
-	if len(s.port) == 0 {
-		s.addr = ":0"
-		return
-	}
-	s.addr = fmt.Sprintf(":%s", s.port)
-}
-
-func (s *Server) registerRoutes() {
-	for _, route := range s.routes {
-		finalHandler := httpHandler(route.handler)
-		finalHandler = registerMiddlewares(finalHandler, s.globalMiddlewares...)
-		finalHandler = registerMiddlewares(finalHandler, route.middlewares...)
-		s.mux.Handle(route.pattern, finalHandler)
-	}
-}
-
-func (s *Server) registerRoute(method, endpoint string, handlers ...Handler) error {
-	if len(handlers) == 0 {
-		return errors.New("put a handler")
-	}
-	handler := handlers[len(handlers)-1]
-
-	r := Router{
-		pattern:     fmt.Sprintf("%s %s", method, s.transformPath(endpoint)),
-		handler:     handler,
-		middlewares: handlers[:len(handlers)-1],
-	}
-	s.routes = append(s.routes, r)
-	return nil
-}
-
-func (s *Server) transformPath(path string) string {
-	re := regexp.MustCompile(`:(\w+)`)
-	return re.ReplaceAllString(path, "{$1}")
-}
-
-func registerMiddlewares(handler http.Handler, middlewares ...Handler) http.Handler {
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		handler = httpMiddleware(middlewares[i], handler)
-	}
-	return handler
-}
-
-type TestServer struct {
-	*Server
-}
-
-// Test configures the Server for testing.
-//
-//		server := nine.NewServer(8080)
-//		message := "Hello World"
-//		server.Get("/helloWorld", func(req *Request, res *Response) error {
-//			return res.Send([]byte(message))
-//		})
-//		testServer := server.Test()
-func (s *Server) Test() *TestServer {
-	s.mux = http.NewServeMux()
-	s.registerRoutes()
-	s.setAddr()
-	return &TestServer{Server: s}
-}
-
-// Request sends a simulated HTTP request to the server and captures
-// the response in a ResponseRecorder, allowing the result to be inspected.
-//
-//		server := nine.NewServer(8080)
-//		message := "Hello World"
-//		server.Get("/helloWorld", func(req *Request, res *Response) error {
-//		   return res.Send([]byte(message))
-//		})
-//	    res := server.Test().Request(req)
-//		result := res.Body.String()
-//		if result != message {
-//			t.Fatalf("result: %s, expected: %s", result, message)
-//		}
-func (t *TestServer) Request(r *http.Request) *httptest.ResponseRecorder {
-	w := httptest.NewRecorder()
-	t.mux.ServeHTTP(w, r)
-	return w
-}
-
-type ServerError struct {
-	StatusCode  int
-	ContentType string
-	Err         error
-}
-
-func (e *ServerError) Error() string {
-	return e.Err.Error()
-}
-
-func (e *ServerError) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if e.Err != nil {
-		w.Header().Set("Content-Type", e.ContentType)
-
-		if e.ContentType == "application/json" {
-			if e.StatusCode >= 100 {
-				w.WriteHeader(e.StatusCode)
-			}
-			b, err := JSON{
-				"err": e.Err.Error(),
-			}.Bytes()
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Write(b)
-			return
-		}
-
-		http.Error(w, e.Err.Error(), e.StatusCode)
-		return
-	}
-}
-
-func httpMiddleware(m Handler, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		req := Request{req: r}
-		res := Response{res: w}
-		if err := m(&req, &res); err != nil {
-			if srvErr, ok := err.(*ServerError); ok && srvErr != nil {
-				srvErr.ServeHTTP(w, r)
-				return
-			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-func httpHandler(h Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		req := Request{req: r}
-		res := Response{res: w}
-		if err := h(&req, &res); err != nil {
-			if srvErr, ok := err.(*ServerError); ok && srvErr != nil {
-				srvErr.ServeHTTP(w, r)
-				return
-			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	})
 }
