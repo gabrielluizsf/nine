@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -96,10 +97,11 @@ func TestResponseJSON(t *testing.T) {
 
 func TestServerError(t *testing.T) {
 	w := httptest.NewRecorder()
+	errMessage := "internal server error"
 	serverErr := &ServerError{
 		StatusCode:  http.StatusInternalServerError,
 		ContentType: "application/json",
-		Err:         errors.New("internal server error"),
+		Err:         errors.New(errMessage),
 	}
 
 	serverErr.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
@@ -111,6 +113,73 @@ func TestServerError(t *testing.T) {
 	expectedBody := `{"err":"internal server error"}`
 	if strings.TrimSpace(w.Body.String()) != expectedBody {
 		t.Errorf("expected body '%s', got '%s'", expectedBody, w.Body.String())
+	}
+	if serverErr.Error() != errMessage {
+		t.Errorf("expected '%s', got '%s'", errMessage, serverErr.Error())
+	}
+}
+
+func TestRegisterRouteErr(t *testing.T) {
+	server := NewServer(9819371)
+	if err := server.Get("/"); err != ErrPutAHandler {
+		t.Fatalf("result: %v expected: %v", err, ErrPutAHandler)
+	}
+}
+
+func TestPort(t *testing.T) {
+	port := 42
+	server := NewServer(port)
+	result := server.Port()
+	expected := fmt.Sprint(port)
+	if result != expected {
+		t.Fatalf("result %s expected %s", result, expected)
+	}
+}
+
+func TestHandler(t *testing.T) {
+	server := NewServer(31312)
+	b := []byte("Hello World")
+	server.Get("/", func(req *Request, res *Response) error {
+		return res.Send(b)
+	})
+	h := server.Handler()
+	if _, ok := any(h).(http.Handler); !ok {
+		t.Fatalf("invalid Handler")
+	}
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	h.ServeHTTP(w, r)
+	result := w.Body.String()
+	expected := string(b)
+	if result != expected {
+		t.Fatalf("result: %s expected: %s", result, expected)
+	}
+}
+
+func TestBodyClone(t *testing.T) {
+	server := NewServer(8278427)
+
+	server.Use(func(req *Request, res *Response) error {
+		b := req.Body().Bytes()
+		log.Println("body:", string(b))
+		return nil
+	})
+
+	server.Post("/", func(req *Request, res *Response) error {
+		return res.Send(req.Body().Bytes())
+	})
+	body, err := JSON{
+		"message": "Hello World",
+	}.Buffer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/", body)
+	w := server.Test().Request(req)
+	result := w.Body.String()
+	expected := `{"message":"Hello World"}`
+	if result != expected {
+		t.Fatalf("result %s expected %s", result, expected)
 	}
 }
 
@@ -196,7 +265,7 @@ func TestSetAddr(t *testing.T) {
 	}
 	server = NewServer("")
 	server.setAddr()
-	expected = ":0"
+	expected = ":" + server.port
 	if server.addr != expected {
 		t.Fatalf("result %s, expected %s", server.addr, expected)
 	}
