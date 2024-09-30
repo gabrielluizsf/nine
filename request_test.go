@@ -29,7 +29,10 @@ func TestRequest(t *testing.T) {
 			expectedBody: "GET request",
 			headers:      []Header{{Data: Data{Key: "X-Custom-Header", Value: "value"}}},
 			body:         nil,
-			queryParams:  []QueryParam{{Data: Data{Key: "query", Value: "param"}}},
+			queryParams: []QueryParam{
+				{Data: Data{Key: "query", Value: "param"}},
+				{Data: Data{Key: "search", Value: "gopher"}},
+			},
 		},
 		{
 			method:       http.MethodPost,
@@ -51,9 +54,12 @@ func TestRequest(t *testing.T) {
 			method:       http.MethodPatch,
 			url:          server.URL + "/patch",
 			expectedBody: "PATCH request",
-			headers:      []Header{{Data: Data{Key: "X-Custom-Header", Value: "value"}}},
-			body:         nil,
-			queryParams:  nil,
+			headers: []Header{
+				{Data: Data{Key: "X-Custom-Header", Value: "value"}},
+				{Data: Data{Key: "X-Request-Id", Value: 101209320192}},
+			},
+			body:        nil,
+			queryParams: nil,
 		},
 		{
 			method:       http.MethodDelete,
