@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -37,6 +38,24 @@ func NewServer[P int | string](port P) *Server {
 	}
 }
 
+func (s *Server) Port() string {
+	return s.port
+}
+
+func (s *Server) Handler() http.Handler {
+	s.registerRoutes()
+	s.setAddr()
+	return &ServerHandler{s}
+}
+
+type ServerHandler struct {
+	*Server
+}
+
+func (s *ServerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mux.ServeHTTP(w, r)
+}
+
 // Listen starts the HTTP server, listening on the configured address, and binds all registered routes and middleware.
 //
 //	server := nine.NewServer(5050)
@@ -45,17 +64,28 @@ func NewServer[P int | string](port P) *Server {
 //	}
 //	log.Fatal(server.Listen())
 func (s *Server) Listen() error {
-	s.registerRoutes()
-	s.setAddr()
-	return http.ListenAndServe(s.addr, s.mux)
+	return http.ListenAndServe(s.addr, s.Handler())
 }
 
-func (s *Server) setAddr() {
+func (s *Server) setAddr() error {
 	if len(s.port) == 0 {
-		s.addr = ":0"
-		return
+		listener, err := net.Listen("tcp", ":0")
+		if err != nil {
+			return err
+		}
+		defer listener.Close()
+
+		addr := listener.Addr().String()
+		_, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return err
+		}
+		s.port = port
+		s.addr = fmt.Sprintf(":%s", port)
+		return nil
 	}
 	s.addr = fmt.Sprintf(":%s", s.port)
+	return nil
 }
 
 func (s *Server) registerRoutes() {
@@ -67,9 +97,11 @@ func (s *Server) registerRoutes() {
 	}
 }
 
+var ErrPutAHandler = errors.New("put a handler")
+
 func (s *Server) registerRoute(method, endpoint string, handlers ...Handler) error {
 	if len(handlers) == 0 {
-		return errors.New("put a handler")
+		return ErrPutAHandler
 	}
 	handler := handlers[len(handlers)-1]
 
@@ -177,8 +209,6 @@ type TestServer struct {
 //	testServer := server.Test()
 func (s *Server) Test() *TestServer {
 	s.mux = http.NewServeMux()
-	s.registerRoutes()
-	s.setAddr()
 	return &TestServer{Server: s}
 }
 
@@ -197,7 +227,7 @@ func (s *Server) Test() *TestServer {
 //		}
 func (t *TestServer) Request(r *http.Request) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
-	t.mux.ServeHTTP(w, r)
+	t.Handler().ServeHTTP(w, r)
 	return w
 }
 
@@ -275,7 +305,7 @@ type Request struct {
 //	b := req.Body().Bytes()
 func (r *Request) Body() *bytes.Buffer {
 	b, _ := io.ReadAll(r.req.Body)
-	defer r.req.Body.Close()
+	r.req.Body = io.NopCloser(bytes.NewReader(b))
 	return bytes.NewBuffer(b)
 }
 
