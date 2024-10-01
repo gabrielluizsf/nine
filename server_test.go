@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRequestBody(t *testing.T) {
@@ -70,8 +71,7 @@ func TestResponseJSON(t *testing.T) {
 		"username": "gabrielluizsf",
 	}
 	handler := func(req *Request, res *Response) error {
-		res.Status(http.StatusCreated).JSON(payload)
-		return nil
+		return res.Status(http.StatusCreated).JSON(payload)
 	}
 
 	h := httpHandler(handler)
@@ -93,14 +93,44 @@ func TestResponseJSON(t *testing.T) {
 	if user.Username != payload["username"] {
 		t.Fatal("invalid body")
 	}
+	err := errors.New("err")
+	handler = func(req *Request, res *Response) error {
+		return err
+	}
+	h = httpHandler(handler)
+	w = httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	if w.Result().StatusCode != http.StatusInternalServerError {
+		t.Fail()
+	}
+	serverErr := &ServerError{
+		StatusCode:  http.StatusServiceUnavailable,
+		ContentType: "application/json",
+		Err:         err,
+	}
+	handler = func(req *Request, res *Response) error {
+		return serverErr
+	}
+	h = httpHandler(handler)
+	w = httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	if w.Result().StatusCode != serverErr.StatusCode {
+		t.Fail()
+	}
+
 }
 
 func TestServerError(t *testing.T) {
-	w := httptest.NewRecorder()
 	errMessage := "internal server error"
+	assertServerError(t, "application/json", errMessage)
+	assertServerError(t, http.DetectContentType([]byte(errMessage)), errMessage)
+}
+
+func assertServerError(t *testing.T, contentType, errMessage string) {
+	w := httptest.NewRecorder()
 	serverErr := &ServerError{
 		StatusCode:  http.StatusInternalServerError,
-		ContentType: "application/json",
+		ContentType: contentType,
 		Err:         errors.New(errMessage),
 	}
 
@@ -109,13 +139,22 @@ func TestServerError(t *testing.T) {
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, w.Code)
 	}
-
-	expectedBody := `{"err":"internal server error"}`
-	if strings.TrimSpace(w.Body.String()) != expectedBody {
-		t.Errorf("expected body '%s', got '%s'", expectedBody, w.Body.String())
-	}
-	if serverErr.Error() != errMessage {
-		t.Errorf("expected '%s', got '%s'", errMessage, serverErr.Error())
+	if contentType == "application/json" {
+		expectedBody := `{"err":"internal server error"}`
+		if strings.TrimSpace(w.Body.String()) != expectedBody {
+			t.Errorf("expected body '%s', got '%s'", expectedBody, w.Body.String())
+		}
+		if serverErr.Error() != errMessage {
+			t.Errorf("expected '%s', got '%s'", errMessage, serverErr.Error())
+		}
+	} else {
+		expectedBody := errMessage
+		if strings.TrimSpace(w.Body.String()) != expectedBody {
+			t.Errorf("expected body '%s', got '%s'", expectedBody, w.Body.String())
+		}
+		if serverErr.Error() != errMessage {
+			t.Errorf("expected '%s', got '%s'", errMessage, serverErr.Error())
+		}
 	}
 }
 
@@ -222,7 +261,39 @@ func TestMiddleware(t *testing.T) {
 		t.Errorf("expected 'X-Middleware' header to be 'processed'")
 	}
 	if w.Body.String() != message {
-		t.Errorf("expected body 'Hello', got '%s'", w.Body.String())
+		t.Errorf("expected body %s, got '%s'", w.Body.String(), message)
+	}
+	statusCode := http.StatusInternalServerError
+	err := &ServerError{
+		StatusCode:  statusCode,
+		ContentType: "application/json",
+		Err:         errors.New(http.StatusText(statusCode)),
+	}
+
+	middleware = func(req *Request, res *Response) error {
+		return err
+	}
+	finalHandler = httpMiddleware(middleware, httpHandler(handler))
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	finalHandler.ServeHTTP(w, req)
+	if w.Result().StatusCode != err.StatusCode {
+		t.Fail()
+	}
+	result := w.Body.String()
+	if result != `{"err":"Internal Server Error"}` {
+		t.Fail()
+	}
+
+	middleware = func(req *Request, res *Response) error {
+		return err.Err
+	}
+	finalHandler = httpMiddleware(middleware, httpHandler(handler))
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	finalHandler.ServeHTTP(w, req)
+	if w.Result().StatusCode != err.StatusCode {
+		t.Fail()
 	}
 }
 
@@ -331,6 +402,19 @@ func TestTestServer(t *testing.T) {
 	}
 }
 
+func TestShutdown(t *testing.T) {
+	server := NewServer("")
+
+	server.Get("/", func(req *Request, res *Response) error {
+		return nil
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		t.Error(err)
+	}
+}
 func TestUse(t *testing.T) {
 	message := "new request received"
 	server := NewServer(5050)

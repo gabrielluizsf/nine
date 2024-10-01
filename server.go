@@ -17,6 +17,7 @@ type Handler func(req *Request, res *Response) error
 
 type Server struct {
 	mux               *http.ServeMux
+	httpServer        *http.Server
 	routes            []Router
 	globalMiddlewares []Handler
 	addr, port        string
@@ -32,9 +33,10 @@ type Router struct {
 // It accepts both integer and string types for the port.
 func NewServer[P int | string](port P) *Server {
 	return &Server{
-		mux:    http.NewServeMux(),
-		routes: make([]Router, 0),
-		port:   fmt.Sprint(port),
+		mux:        http.NewServeMux(),
+		routes:     make([]Router, 0),
+		port:       fmt.Sprint(port),
+		httpServer: new(http.Server),
 	}
 }
 
@@ -64,7 +66,48 @@ func (s *ServerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //	}
 //	log.Fatal(server.Listen())
 func (s *Server) Listen() error {
-	return http.ListenAndServe(s.addr, s.Handler())
+	server := s.httpServer
+	server.Handler = s.Handler()
+	server.Addr = s.addr
+	return server.ListenAndServe()
+}
+
+// Shutdown gracefully stops the HTTP server, allowing any pending requests to complete.
+// This method should be called when you want to stop the server from accepting new connections
+// and shut it down safely without losing any ongoing requests.
+//
+// Example usage:
+//
+//	 srv := nine.NewServer(os.Getenv("PORT"))
+//	 srv.Get("/", func(req *nine.Request, res *nine.Response) error {
+//		return res.Send([]byte("Hello World"))
+//	  })
+//
+//	 stop := make(chan os.Signal, 1)
+//	 signal.Notify(stop, os.Interrupt)
+//	 var wg sync.WaitGroup
+//	 wg.Add(1)
+//
+//		go func() {
+//			defer wg.Done()
+//			<-stop
+//			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//			defer cancel()
+//			if err := srv.Shutdown(ctx); err != nil {
+//				fmt.Printf("Error shutting down server: %v\n", err)
+//			}
+//			fmt.Println("Server exited gracefully")
+//		}()
+//
+//	 fmt.Println("starting server")
+//
+//	 if err := srv.Listen(); err != nil && err != http.ErrServerClosed {
+//		fmt.Printf("Error starting server: %v\n", err)
+//	 }
+//
+//	 wg.Wait()
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.httpServer.Shutdown(ctx)
 }
 
 func (s *Server) setAddr() error {
