@@ -103,13 +103,13 @@ func (c *client) Response(req *http.Request) (*http.Response, error) {
 // then sends the request and returns the corresponding response.
 //
 // Parameters:
-// 	- method: the HTTP method (e.g., "GET", "POST") to be used for the request.
-// 	- url: the URL to which the request is sent.
-// 	- options: a pointer to an Options struct containing headers, body, and query parameters to be applied to the request.
+//   - method: the HTTP method (e.g., "GET", "POST") to be used for the request.
+//   - url: the URL to which the request is sent.
+//   - options: a pointer to an Options struct containing headers, body, and query parameters to be applied to the request.
 //
 // Returns:
-// 	- *http.Response: the HTTP response received from the server.
-// 	- error: an error if the request preparation or execution failed, or nil if it was successful.
+//   - *http.Response: the HTTP response received from the server.
+//   - error: an error if the request preparation or execution failed, or nil if it was successful.
 func (c *client) executeRequest(method, url string, options *Options) (*http.Response, error) {
 	var (
 		headers     = options.Headers
