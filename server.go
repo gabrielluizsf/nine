@@ -69,7 +69,11 @@ func (s *Server) Listen() error {
 	server := s.httpServer
 	server.Handler = s.Handler()
 	server.Addr = s.addr
-	return server.ListenAndServe()
+	err := server.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		return err
+	}
+	return nil
 }
 
 // Shutdown gracefully stops the HTTP server, allowing any pending requests to complete.
