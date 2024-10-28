@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"sort"
 )
 
 type Handler func(req *Request, res *Response) error
@@ -18,7 +20,7 @@ type Handler func(req *Request, res *Response) error
 type Server struct {
 	mux               *http.ServeMux
 	httpServer        *http.Server
-	routes            []Router
+	routes            Routes
 	globalMiddlewares []Handler
 	addr, port        string
 }
@@ -38,6 +40,47 @@ func NewServer[P int | string](port P) *Server {
 		port:       fmt.Sprint(port),
 		httpServer: new(http.Server),
 	}
+}
+
+func (s *Server) notFoundMiddleware(req *Request, res *Response) error {
+	if exists := s.patternExists(req.Method(), req.Path()); !exists {
+		code := http.StatusNotFound
+		return &ServerError{
+			StatusCode: code,
+			Err:        errors.New(http.StatusText(code)),
+		}
+	}
+	return nil
+}
+
+func (s *Server) patternExists(method, pattern string) bool {
+	sort.Sort(s.routes)
+	pattern = s.routePattern(method, pattern)
+	lower, high := 0, len(s.routes)-1
+	for lower <= high {
+		middle := math.Floor(float64(lower) + float64(high-lower)/2)
+		route := s.routes[int(middle)]
+		regex := patternToRegex(route.pattern)
+		matched, err := regexp.MatchString(regex, pattern)
+		if err != nil {
+			return false
+		}
+		if matched {
+			return true
+		}
+		if route.pattern < pattern {
+			lower = int(middle) + 1
+		} else {
+			high = int(middle) - 1
+		}
+
+	}
+	return false
+}
+
+func patternToRegex(pattern string) string {
+	regexPattern := regexp.MustCompile(`\{[a-zA-Z0-9_]+\}`).ReplaceAllString(pattern, `([^/]+)`)
+	return "^" + regexPattern + "$"
 }
 
 func (s *Server) Port() string {
@@ -138,6 +181,7 @@ func (s *Server) setAddr() error {
 func (s *Server) registerRoutes() {
 	for _, route := range s.routes {
 		finalHandler := httpHandler(route.handler)
+		finalHandler = registerMiddlewares(finalHandler, s.notFoundMiddleware)
 		finalHandler = registerMiddlewares(finalHandler, s.globalMiddlewares...)
 		finalHandler = registerMiddlewares(finalHandler, route.middlewares...)
 		s.mux.Handle(route.pattern, finalHandler)
@@ -153,12 +197,16 @@ func (s *Server) registerRoute(method, endpoint string, handlers ...Handler) err
 	handler := handlers[len(handlers)-1]
 
 	r := Router{
-		pattern:     fmt.Sprintf("%s %s", method, s.transformPath(endpoint)),
+		pattern:     s.routePattern(method, endpoint),
 		handler:     handler,
 		middlewares: handlers[:len(handlers)-1],
 	}
 	s.routes = append(s.routes, r)
 	return nil
+}
+
+func (s *Server) routePattern(method, path string) string {
+	return fmt.Sprintf("%s %s", method, s.transformPath(path))
 }
 
 func (s *Server) transformPath(path string) string {
