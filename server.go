@@ -502,9 +502,12 @@ func (r *Response) Send(b []byte) error {
 }
 
 // SendStatus sends the HTTP response with the specified status code.
-func (r *Response) SendStatus(statusCode int) {
+func (r *Response) SendStatus(statusCode int) error {
 	r.statusCode = statusCode
-	r.writeStatus()
+	return &ServerError{
+		StatusCode: r.statusCode,
+		Err:        errors.New(http.StatusText(r.statusCode)),
+	}
 }
 
 func (r *Response) writeStatus() {

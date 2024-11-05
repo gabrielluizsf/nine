@@ -224,8 +224,7 @@ func TestBodyClone(t *testing.T) {
 
 func TestResponseStatus(t *testing.T) {
 	handler := func(req *Request, res *Response) error {
-		res.SendStatus(http.StatusInternalServerError)
-		return nil
+		return res.SendStatus(http.StatusInternalServerError)
 	}
 
 	h := httpHandler(handler)
