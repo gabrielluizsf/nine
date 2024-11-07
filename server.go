@@ -17,6 +17,13 @@ import (
 
 type Handler func(req *Request, res *Response) error
 
+func (h Handler) Redirect(url string) Handler {
+	return func(req *Request, res *Response) error {
+		http.Redirect(res.res, req.req, url, http.StatusMovedPermanently)
+		return nil
+	}
+}
+
 type Server struct {
 	mux               *http.ServeMux
 	httpServer        *http.Server
@@ -501,6 +508,17 @@ func (r *Response) Send(b []byte) error {
 	return nil
 }
 
+// JSON Sends a JSON response by encoding the provided data
+// into JSON format and setting the appropriate content-type and status code.
+func (r *Response) JSON(data JSON) error {
+	r.res.Header().Add("Content-Type", "application/json")
+	if r.invalidStatusCode() {
+		r.statusCode = defaultStatusCode
+	}
+	r.res.WriteHeader(r.statusCode)
+	return json.NewEncoder(r.res).Encode(data)
+}
+
 // SendStatus sends the HTTP response with the specified status code.
 func (r *Response) SendStatus(statusCode int) error {
 	r.statusCode = statusCode
@@ -520,15 +538,4 @@ func (r *Response) writeStatus() {
 
 func (r *Response) invalidStatusCode() bool {
 	return r.statusCode < http.StatusContinue || r.statusCode > http.StatusNetworkAuthenticationRequired
-}
-
-// JSON Sends a JSON response by encoding the provided data
-// into JSON format and setting the appropriate content-type and status code.
-func (r *Response) JSON(data JSON) error {
-	r.res.Header().Add("Content-Type", "application/json")
-	if r.invalidStatusCode() {
-		r.statusCode = defaultStatusCode
-	}
-	r.res.WriteHeader(r.statusCode)
-	return json.NewEncoder(r.res).Encode(data)
 }
