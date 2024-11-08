@@ -178,9 +178,10 @@ func TestPort(t *testing.T) {
 func TestHandler(t *testing.T) {
 	server := NewServer(31312)
 	b := []byte("Hello World")
-	server.Get("/", func(req *Request, res *Response) error {
+	var helloWorldHandler Handler = func(req *Request, res *Response) error {
 		return res.Send(b)
-	})
+	}
+	server.Get("/", helloWorldHandler)
 	h := server.Handler()
 	if _, ok := any(h).(http.Handler); !ok {
 		t.Fatalf("invalid Handler")
@@ -192,6 +193,16 @@ func TestHandler(t *testing.T) {
 	expected := string(b)
 	if result != expected {
 		t.Fatalf("result: %s expected: %s", result, expected)
+	}
+	testServer := httptest.NewServer(h)
+	server = NewServer(31313)
+	server.Get("/", helloWorldHandler.Redirect(testServer.URL))
+	h = server.Handler()
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(http.MethodGet, "/", nil)
+	h.ServeHTTP(w, r)
+	if w.Code != http.StatusMovedPermanently {
+		t.Fail()
 	}
 }
 
