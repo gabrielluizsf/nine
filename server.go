@@ -33,9 +33,10 @@ type Server struct {
 }
 
 type Router struct {
-	pattern     string
-	handler     Handler
-	middlewares []Handler
+	pattern      string
+	handler      Handler
+	middlewares  []Handler
+	servingFiles bool
 }
 
 // NewServer creates a new `Server` instance bound to the specified port.
@@ -47,6 +48,27 @@ func NewServer[P int | string](port P) *Server {
 		port:       fmt.Sprint(port),
 		httpServer: new(http.Server),
 	}
+}
+
+// ServeFiles serves static files from the specified directory for a given URL pattern.
+//
+// This function associates a URL pattern with a directory path, enabling the server
+// to serve files from that directory when the pattern matches a request URL. The
+// function uses the `http.FileServer` handler to map the files under the directory
+// to the provided pattern.
+//
+//	// Initialize a new server instance
+//	server := nine.NewServer(os.Getenv("PORT"))
+//
+//	// Serve files from the "./static" directory under the root URL pattern "/"
+//	server.ServeFiles("/", "./static")
+func (s *Server) ServeFiles(pattern, path string) {
+	r := Router{
+		pattern:      s.routePattern(http.MethodGet, pattern),
+		handler:      ServeFiles(http.Dir(path)),
+		servingFiles: true,
+	}
+	s.registerRoute(r)
 }
 
 func (s *Server) notFoundMiddleware(req *Request, res *Response) error {
@@ -188,7 +210,9 @@ func (s *Server) setAddr() error {
 func (s *Server) registerRoutes() {
 	for _, route := range s.routes {
 		finalHandler := httpHandler(route.handler)
-		finalHandler = registerMiddlewares(finalHandler, s.notFoundMiddleware)
+		if !route.servingFiles {
+			finalHandler = registerMiddlewares(finalHandler, s.notFoundMiddleware)
+		}
 		finalHandler = registerMiddlewares(finalHandler, s.globalMiddlewares...)
 		finalHandler = registerMiddlewares(finalHandler, route.middlewares...)
 		s.mux.Handle(route.pattern, finalHandler)
@@ -197,17 +221,7 @@ func (s *Server) registerRoutes() {
 
 var ErrPutAHandler = errors.New("put a handler")
 
-func (s *Server) registerRoute(method, endpoint string, handlers ...Handler) error {
-	if len(handlers) == 0 {
-		return ErrPutAHandler
-	}
-	handler := handlers[len(handlers)-1]
-
-	r := Router{
-		pattern:     s.routePattern(method, endpoint),
-		handler:     handler,
-		middlewares: handlers[:len(handlers)-1],
-	}
+func (s *Server) registerRoute(r Router) error {
 	s.routes = append(s.routes, r)
 	return nil
 }
@@ -247,7 +261,17 @@ func (s *Server) Use(middleware Handler) {
 //	     return res.Send([]byte("Hello World"))
 //	})
 func (s *Server) Get(endpoint string, handlers ...Handler) error {
-	return s.registerRoute(http.MethodGet, endpoint, handlers...)
+	if len(handlers) == 0 {
+		return ErrPutAHandler
+	}
+	lastIndex := len(handlers) - 1
+	handler := handlers[lastIndex]
+	r := Router{
+		pattern:     s.routePattern(http.MethodGet, endpoint),
+		handler:     handler,
+		middlewares: handlers[:lastIndex],
+	}
+	return s.registerRoute(r)
 }
 
 // Post registers a route for POST requests at the specified endpoint.
@@ -263,7 +287,17 @@ func (s *Server) Get(endpoint string, handlers ...Handler) error {
 //		  	 return res.Send([]byte("Hello "+body.Name))
 //		})
 func (s *Server) Post(endpoint string, handlers ...Handler) error {
-	return s.registerRoute(http.MethodPost, endpoint, handlers...)
+	if len(handlers) == 0 {
+		return ErrPutAHandler
+	}
+	lastIndex := len(handlers) - 1
+	handler := handlers[lastIndex]
+	r := Router{
+		pattern:     s.routePattern(http.MethodPost, endpoint),
+		handler:     handler,
+		middlewares: handlers[:lastIndex],
+	}
+	return s.registerRoute(r)
 }
 
 // Put registers a route for PUT requests at the specified endpoint.
@@ -271,7 +305,17 @@ func (s *Server) Post(endpoint string, handlers ...Handler) error {
 //	server := nine.NewServer(5050)
 //	server.Put("/user/change", handlers...)
 func (s *Server) Put(endpoint string, handlers ...Handler) error {
-	return s.registerRoute(http.MethodPut, endpoint, handlers...)
+	if len(handlers) == 0 {
+		return ErrPutAHandler
+	}
+	lastIndex := len(handlers) - 1
+	handler := handlers[lastIndex]
+	r := Router{
+		pattern:     s.routePattern(http.MethodPut, endpoint),
+		handler:     handler,
+		middlewares: handlers[:lastIndex],
+	}
+	return s.registerRoute(r)
 }
 
 // Patch registers a route for PATCH requests at the specified endpoint.
@@ -279,7 +323,17 @@ func (s *Server) Put(endpoint string, handlers ...Handler) error {
 //	server := nine.NewServer(5050)
 //	server.Patch("/version/update", handlers...)
 func (s *Server) Patch(endpoint string, handlers ...Handler) error {
-	return s.registerRoute(http.MethodPatch, endpoint, handlers...)
+	if len(handlers) == 0 {
+		return ErrPutAHandler
+	}
+	lastIndex := len(handlers) - 1
+	handler := handlers[lastIndex]
+	r := Router{
+		pattern:     s.routePattern(http.MethodPatch, endpoint),
+		handler:     handler,
+		middlewares: handlers[:lastIndex],
+	}
+	return s.registerRoute(r)
 }
 
 // Delete registers a route for DELETE requests at the specified endpoint.
@@ -287,7 +341,17 @@ func (s *Server) Patch(endpoint string, handlers ...Handler) error {
 //	server := nine.NewServer(5050)
 //	server.Delete("/account/delete", handlers...)
 func (s *Server) Delete(endpoint string, handlers ...Handler) error {
-	return s.registerRoute(http.MethodDelete, endpoint, handlers...)
+	if len(handlers) == 0 {
+		return ErrPutAHandler
+	}
+	lastIndex := len(handlers) - 1
+	handler := handlers[lastIndex]
+	r := Router{
+		pattern:     s.routePattern(http.MethodDelete, endpoint),
+		handler:     handler,
+		middlewares: handlers[:lastIndex],
+	}
+	return s.registerRoute(r)
 }
 
 func registerMiddlewares(handler http.Handler, middlewares ...Handler) http.Handler {
@@ -475,14 +539,13 @@ func (r *Response) SetHeader(key, value string) {
 	r.res.Header().Set(key, value)
 }
 
+// Deprecated: ServeFiles has been deprecated in favor of using the nine.NewServer API.
+// You can replace it with:
+//
+//	s := nine.NewServer(os.Getenv("PORT"))
+//	s.ServeFiles("/", "./static")
+//
 // ServeFiles returns a Handler that serves static files from the specified http.FileSystem.
-// It uses http.FileServer to handle requests for static files and returns a 404 error if the file is not found.
-//
-// Parameters:
-//   - path: An http.FileSystem representing the root directory from which static files will be served.
-//
-// Returns:
-//   - A Handler function that takes a Request and Response, serving the files
 func ServeFiles(path http.FileSystem) Handler {
 	staticFileSystem := http.FileServer(path)
 	return func(req *Request, res *Response) error {
