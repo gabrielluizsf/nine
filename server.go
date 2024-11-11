@@ -466,6 +466,18 @@ type Request struct {
 	req *http.Request
 }
 
+// Body decodes the JSON body of an HTTP request into a provided variable.
+//
+//	var body bodyType
+//	if err := nine.Body(req, &body); err != nil {
+//	    return res.Status(http.StatusBadRequest).JSON(nine.JSON{
+//			"message": "invalid body"
+//		})
+//	}
+func Body[T any](req *Request, v *T) error {
+	return DecodeJSON(req.Body().Bytes(), v)
+}
+
 // Body returns the body of the HTTP request.
 //
 //	b := req.Body().Bytes()
