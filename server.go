@@ -478,6 +478,15 @@ func Body[T any](req *Request, v *T) error {
 	return DecodeJSON(req.Body().Bytes(), v)
 }
 
+// HTTP returns the HTTP request.
+//
+//	func handler(req *nine.Request, res *nine.Response) error {
+//			httpRequest := req.HTTP()
+//	}
+func (r *Request) HTTP() *http.Request {
+	return r.req
+}
+
 // Body returns the body of the HTTP request.
 //
 //	b := req.Body().Bytes()
@@ -537,6 +546,15 @@ func (r *Request) Context() context.Context {
 type Response struct {
 	res        http.ResponseWriter
 	statusCode int
+}
+
+// HTTP returns the HTTP response.
+//
+//	func handler(req *nine.Request, res *nine.Response) error {
+//			httpRequest := res.HTTP()
+//	}
+func (r *Response) HTTP() http.ResponseWriter {
+	return r.res
 }
 
 // Status sets the HTTP response status code
