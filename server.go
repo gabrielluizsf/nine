@@ -551,7 +551,7 @@ type Response struct {
 // HTTP returns the HTTP response.
 //
 //	func handler(req *nine.Request, res *nine.Response) error {
-//			httpRequest := res.HTTP()
+//			httpResponse := res.HTTP()
 //	}
 func (r *Response) HTTP() http.ResponseWriter {
 	return r.res
