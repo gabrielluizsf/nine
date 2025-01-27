@@ -2,3 +2,5 @@ github.com/i9si-sistemas/assert v0.0.0-20241009185655-c32c80e1bc67 h1:kKienFejW2
 github.com/i9si-sistemas/assert v0.0.0-20241009185655-c32c80e1bc67/go.mod h1:xRwY4u6NZZjNLlgdBSaNESQEUSJ4CxuT4lWQAbvwfBQ=
 github.com/i9si-sistemas/assert v0.0.0-20241220123417-831a5ae78784 h1:iJD3t8SlcTQu6nJPbc2v/7ld4iWBRzMhxFo2yBCWlLI=
 github.com/i9si-sistemas/assert v0.0.0-20241220123417-831a5ae78784/go.mod h1:xRwY4u6NZZjNLlgdBSaNESQEUSJ4CxuT4lWQAbvwfBQ=
+github.com/i9si-sistemas/assert v0.0.0-20241226143514-2239efdffece h1:dXX3IVWmQl4sRUpBPR0VaD4ev70lbK00a4gt/VZZHIA=
+github.com/i9si-sistemas/assert v0.0.0-20241226143514-2239efdffece/go.mod h1:xRwY4u6NZZjNLlgdBSaNESQEUSJ4CxuT4lWQAbvwfBQ=
