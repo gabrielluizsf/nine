@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -110,6 +112,25 @@ func TestSend(t *testing.T) {
 	err := c.Send(data)
 	assert.Nil(t, err)
 	assert.Equal(t, res.Body.String(), "Hello, World!")
+}
+
+func TestSendFile(t *testing.T) {
+	dir := t.TempDir()
+	filePath := fmt.Sprintf("%s/test.txt", dir)
+	file, err := os.Create(filePath)
+	assert.NoError(t, err)
+	msg := "Hello World"
+	_, err = file.Write([]byte(msg))
+	assert.NoError(t, err)
+	err = file.Close()
+	assert.NoError(t, err)
+	
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	res := httptest.NewRecorder()
+	c := NewContext(context.Background(), req, res)
+	err = c.SendFile(filePath)
+	assert.NoError(t, err)
+	assert.Equal(t, res.Body.Bytes(), []byte(msg))
 }
 
 func TestContextJSON(t *testing.T) {
