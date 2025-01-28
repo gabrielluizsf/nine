@@ -74,7 +74,7 @@ func TestResponseJSON(t *testing.T) {
 		return res.Status(http.StatusCreated).JSON(payload)
 	}
 
-	h := httpHandler(handler)
+	h := httpHandler(handler, "/")
 
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	w := httptest.NewRecorder()
@@ -97,7 +97,7 @@ func TestResponseJSON(t *testing.T) {
 	handler = func(req *Request, res *Response) error {
 		return err
 	}
-	h = httpHandler(handler)
+	h = httpHandler(handler, "/")
 	w = httptest.NewRecorder()
 	h.ServeHTTP(w, req)
 	if w.Result().StatusCode != http.StatusInternalServerError {
@@ -111,7 +111,7 @@ func TestResponseJSON(t *testing.T) {
 	handler = func(req *Request, res *Response) error {
 		return serverErr
 	}
-	h = httpHandler(handler)
+	h = httpHandler(handler, "/")
 	w = httptest.NewRecorder()
 	h.ServeHTTP(w, req)
 	if w.Result().StatusCode != serverErr.StatusCode {
@@ -250,7 +250,7 @@ func TestResponseStatus(t *testing.T) {
 		return res.SendStatus(http.StatusInternalServerError)
 	}
 
-	h := httpHandler(handler)
+	h := httpHandler(handler, "/")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
@@ -272,7 +272,7 @@ func TestMiddleware(t *testing.T) {
 		return res.Send([]byte(message))
 	}
 
-	finalHandler := httpMiddleware(middleware, httpHandler(handler))
+	finalHandler := httpMiddleware(middleware, httpHandler(handler, "/"))
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
@@ -295,7 +295,7 @@ func TestMiddleware(t *testing.T) {
 	middleware = func(req *Request, res *Response) error {
 		return err
 	}
-	finalHandler = httpMiddleware(middleware, httpHandler(handler))
+	finalHandler = httpMiddleware(middleware, httpHandler(handler, "/"))
 	w = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodGet, "/", nil)
 	finalHandler.ServeHTTP(w, req)
@@ -310,7 +310,7 @@ func TestMiddleware(t *testing.T) {
 	middleware = func(req *Request, res *Response) error {
 		return err.Err
 	}
-	finalHandler = httpMiddleware(middleware, httpHandler(handler))
+	finalHandler = httpMiddleware(middleware, httpHandler(handler, "/"))
 	w = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodGet, "/", nil)
 	finalHandler.ServeHTTP(w, req)

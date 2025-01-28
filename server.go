@@ -218,7 +218,7 @@ func (s *Server) setAddr() error {
 
 func (s *Server) registerRoutes() {
 	for _, route := range s.routes {
-		finalHandler := httpHandler(route.handler)
+		finalHandler := httpHandler(route.handler, route.pattern)
 		if !route.servingFiles {
 			finalHandler = registerMiddlewares(finalHandler, s.notFoundMiddleware)
 		}
@@ -422,9 +422,9 @@ func httpMiddleware(m Handler, next http.Handler) http.Handler {
 	})
 }
 
-func httpHandler(h Handler) http.Handler {
+func httpHandler(h Handler, pattern string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		req := Request{req: r}
+		req := Request{req: r, pattern: pattern}
 		res := Response{res: w}
 		if err := h(&req, &res); err != nil {
 			if srvErr, ok := err.(*ServerError); ok && srvErr != nil {
@@ -438,7 +438,8 @@ func httpHandler(h Handler) http.Handler {
 }
 
 type Request struct {
-	req *http.Request
+	req     *http.Request
+	pattern string
 }
 
 // Body decodes the JSON body of an HTTP request into a provided variable.

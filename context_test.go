@@ -114,6 +114,25 @@ func TestSend(t *testing.T) {
 	assert.Equal(t, res.Body.String(), "Hello, World!")
 }
 
+func TestParamsParser(t *testing.T) {
+	c := context.Background()
+	req := httptest.NewRequest(http.MethodGet, "/user/123/profile", nil) 
+	res := httptest.NewRecorder()
+	context := NewContext(c, req, res)
+
+	type Params struct {
+		UserID int `param:"userID"`
+	}
+
+	context.Request = &Request{req: context.Request.req, pattern: "/user/{userID}/profile"}
+
+	var params Params
+	err := context.ParamsParser(&params)
+	assert.Nil(t, err)
+
+	assert.Equal(t, params.UserID, 123)
+}
+
 func TestSendFile(t *testing.T) {
 	dir := t.TempDir()
 	filePath := fmt.Sprintf("%s/test.txt", dir)
@@ -124,7 +143,7 @@ func TestSendFile(t *testing.T) {
 	assert.NoError(t, err)
 	err = file.Close()
 	assert.NoError(t, err)
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/", nil)
 	res := httptest.NewRecorder()
 	c := NewContext(context.Background(), req, res)
