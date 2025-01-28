@@ -122,6 +122,11 @@ func (c *Context) SendStatus(status int) error {
 	return c.Response.SendStatus(status)
 }
 
+func (c *Context) Status(statusCode int) *Context {
+	c.Response = c.Response.Status(statusCode)
+	return c
+}
+
 func (c *Context) Send(data []byte) error {
 	return c.Response.Send(data)
 }
