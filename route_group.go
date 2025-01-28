@@ -32,6 +32,15 @@ func (s *Server) Route(basePath string, fn func(router *RouteGroup)) {
 	fn(group)
 }
 
+// Group creates a new route group with a base path and optional middlewares.
+func (g *RouteGroup) Group(basePath string, middlewares ...Handler) *RouteGroup {
+	return &RouteGroup{
+		server:      g.server,
+		basePath:    g.basePath + basePath,
+		middlewares: append(g.middlewares, middlewares...),
+	}
+}
+
 // Get registers a GET route within the group
 func (g *RouteGroup) Get(path string, handlers ...any) error {
 	handler, middlewares, err := registerHandlers(handlers...)

@@ -79,7 +79,8 @@ func TestGroup(t *testing.T) {
 		}
 		return c.JSON(response)
 	})
-	accountGroup.Get("/:name", func(c *Context) error {
+	profileGroup := accountGroup.Group("/profile")
+	profileGroup.Get("/:name", func(c *Context) error {
 		acc, ok := accounts[c.Param("name")]
 		if !ok {
 			return c.SendStatus(http.StatusNotFound)
@@ -89,7 +90,7 @@ func TestGroup(t *testing.T) {
 		})
 	})
 	assertGroupEndpoints(t, testServer)
-	req := httptest.NewRequest(http.MethodGet, "/account/Gabriel%20Luiz", nil)
+	req := httptest.NewRequest(http.MethodGet, "/account/profile/Gabriel%20Luiz", nil)
 	w := testServer.Test().Request(req)
 	assert.Equal(t, w.Result().StatusCode, http.StatusOK)
 	b := w.Body.Bytes()
