@@ -41,6 +41,12 @@ func (g *RouteGroup) Group(basePath string, middlewares ...Handler) *RouteGroup 
 	}
 }
 
+// Route accepts a base path and a function to define routes within the group.
+func (g *RouteGroup) Route(basePath string, fn func(router *RouteGroup)) {
+	group := g.Group(basePath)
+	fn(group)
+}
+
 // Get registers a GET route within the group
 func (g *RouteGroup) Get(path string, handlers ...any) error {
 	handler, middlewares, err := registerHandlers(handlers...)

@@ -89,6 +89,11 @@ func TestGroup(t *testing.T) {
 			"account": acc,
 		})
 	})
+	profileGroup.Route("/photo", func(router *RouteGroup) {
+		router.Get("/:name", func(c *Context) error {
+			return c.Send([]byte(c.Param("name")))
+		})
+	})
 	assertGroupEndpoints(t, testServer)
 	req := httptest.NewRequest(http.MethodGet, "/account/profile/Gabriel%20Luiz", nil)
 	w := testServer.Test().Request(req)
@@ -102,15 +107,20 @@ func TestGroup(t *testing.T) {
 	assert.Equal(t, account.Name, "Gabriel Luiz")
 	assert.Equal(t, account.Age, 23)
 	assert.Equal(t, account.Money, int64(5000))
+
+	req = httptest.NewRequest(http.MethodGet, "/account/profile/photo/gopher", nil)
+	w = testServer.Test().Request(req)
+	assert.Equal(t, w.Result().StatusCode, http.StatusOK)
+	assert.Equal(t, w.Body.Bytes(), []byte("gopher"))
 }
 
-func assertGroupEndpoints(t assert.T,testServer *Server) {
+func assertGroupEndpoints(t assert.T, testServer *Server) {
 	var response struct {
 		Created bool `json:"created"`
 	}
 	payload, err := JSON{
-		"name": "Gabriel Luiz",
-		"age":  23,
+		"name":  "Gabriel Luiz",
+		"age":   23,
 		"money": 5000,
 	}.Buffer()
 	assert.NoError(t, err)
@@ -123,8 +133,8 @@ func assertGroupEndpoints(t assert.T,testServer *Server) {
 	assert.True(t, response.Created)
 
 	payload, err = JSON{
-		"name": "Gabriel Luiz",
-		"age":  23,
+		"name":  "Gabriel Luiz",
+		"age":   23,
 		"money": 5000000,
 	}.Buffer()
 	assert.NoError(t, err)
