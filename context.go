@@ -4,9 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"reflect"
+	"regexp"
+	"strconv"
 )
 
 type Context struct {
@@ -25,6 +29,139 @@ func NewContext(
 		Request:  &Request{req: req},
 		Response: &Response{res: res},
 	}
+}
+
+func (c *Context) pathRegistred() string {
+	return c.Request.pattern
+}
+
+func (c *Context) ParamsParser(v any) error {
+	pattern := c.pathRegistred()
+	path := c.Request.HTTP().URL.Path
+
+	re := regexp.MustCompile(`{([^/]+)}`)
+	pattern = re.ReplaceAllString(pattern, `(?P<$1>[^/]+)`)
+
+	re = regexp.MustCompile(`:([^/]+)`)
+	pattern = re.ReplaceAllString(pattern, `(?P<$1>[^/]+)`)
+
+	regex := regexp.MustCompile(pattern)
+	match := regex.FindStringSubmatch(path)
+	params := make(map[string]string)
+	if match != nil {
+		for i, name := range regex.SubexpNames() {
+			if i > 0 && name != "" {
+				params[name] = match[i]
+			}
+		}
+	}
+
+	val := reflect.ValueOf(v).Elem()
+	typ := val.Type()
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+	
+		paramName := fieldType.Tag.Get("param")
+		if paramName == "" {
+			paramName = fieldType.Name
+		}
+
+		paramValue, exists := params[paramName]
+		if !exists {
+			continue
+		}
+
+		if field.IsValid() && field.CanSet() {
+			switch field.Kind() {
+			case reflect.String:
+				field.SetString(paramValue)
+			case reflect.Int:
+				intVal, err := strconv.Atoi(paramValue)
+				if err != nil {
+					return fmt.Errorf("erro ao converter '%s' para int", paramValue)
+				}
+				field.SetInt(int64(intVal))
+			case reflect.Int8:
+				intVal, err := strconv.ParseInt(paramValue, 10, 8)
+				if err != nil {
+					return fmt.Errorf("erro ao converter '%s' para int8", paramValue)
+				}
+				field.SetInt(intVal)
+			case reflect.Int16:
+				intVal, err := strconv.ParseInt(paramValue, 10, 16)
+				if err != nil {
+					return fmt.Errorf("erro ao converter '%s' para int16", paramValue)
+				}
+				field.SetInt(intVal)
+			case reflect.Int32:
+				intVal, err := strconv.ParseInt(paramValue, 10, 32)
+				if err != nil {
+					return fmt.Errorf("erro ao converter '%s' para int32", paramValue)
+				}
+				field.SetInt(intVal)
+			case reflect.Int64:
+				intVal, err := strconv.ParseInt(paramValue, 10, 64)
+				if err != nil {
+					return fmt.Errorf("erro ao converter '%s' para int64", paramValue)
+				}
+				field.SetInt(intVal)
+			case reflect.Uint:
+				uintVal, err := strconv.ParseUint(paramValue, 10, 0)
+				if err != nil {
+					return fmt.Errorf("erro ao converter '%s' para uint", paramValue)
+				}
+				field.SetUint(uintVal)
+			case reflect.Uint8:
+				uintVal, err := strconv.ParseUint(paramValue, 10, 8)
+				if err != nil {
+					return fmt.Errorf("erro ao converter '%s' para uint8", paramValue)
+				}
+				field.SetUint(uintVal)
+			case reflect.Uint16:
+				uintVal, err := strconv.ParseUint(paramValue, 10, 16)
+				if err != nil {
+					return fmt.Errorf("erro ao converter '%s' para uint16", paramValue)
+				}
+				field.SetUint(uintVal)
+			case reflect.Uint32:
+				uintVal, err := strconv.ParseUint(paramValue, 10, 32)
+				if err != nil {
+					return fmt.Errorf("erro ao converter '%s' para uint32", paramValue)
+				}
+				field.SetUint(uintVal)
+			case reflect.Uint64:
+				uintVal, err := strconv.ParseUint(paramValue, 10, 64)
+				if err != nil {
+					return fmt.Errorf("erro ao converter '%s' para uint64", paramValue)
+				}
+				field.SetUint(uintVal)
+			case reflect.Float32:
+				floatVal, err := strconv.ParseFloat(paramValue, 32)
+				if err != nil {
+					return fmt.Errorf("erro ao converter '%s' para float32", paramValue)
+				}
+				field.SetFloat(floatVal)
+			case reflect.Float64:
+				floatVal, err := strconv.ParseFloat(paramValue, 64)
+				if err != nil {
+					return fmt.Errorf("erro ao converter '%s' para float64", paramValue)
+				}
+				field.SetFloat(floatVal)
+			case reflect.Bool:
+				boolVal, err := strconv.ParseBool(paramValue)
+				if err != nil {
+					return fmt.Errorf("erro ao converter '%s' para bool", paramValue)
+				}
+				field.SetBool(boolVal)
+			default:
+				return fmt.Errorf("tipo não suportado: %s", field.Kind())
+			}
+		}
+	}
+
+	return nil
 }
 
 func (c *Context) SendFile(filePath string) error {
