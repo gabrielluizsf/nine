@@ -69,14 +69,14 @@ import (
 func main() {
     server := nine.NewServer(8080)
 
-    server.Get("/hello", func(req *nine.Request, res *nine.Response) error {
-        return res.Send([]byte("Hello World"))
+    server.Get("/hello", func(c *nine.Context) error {
+        return c.Send([]byte("Hello World"))
     })
 
-    server.Get("/hello/{name}", func(req *nine.Request, res *nine.Response) error {
-        name := req.Param("name")
+    server.Get("/hello/:name", func(c *nine.Context) error {
+        name := c.Param("name")
         message := fmt.Sprintf("Hello %s", name)
-        return res.Send([]byte(message))
+        return c.Send([]byte(message))
     })
 
     log.Fatal(server.Listen())
@@ -88,8 +88,17 @@ func main() {
 You can register routes for different HTTP methods using the Get, Post, Put, Patch, and Delete methods.
 
 ```go
-server.Post("/create", func(req *nine.Request, res *nine.Response) error {
-    return res.Status(http.StatusCreated).Send([]byte("Recurso criado com sucesso"))
+server.Post("/create", func(c *nine.Context) error {
+    return c.Status(http.StatusCreated).Send([]byte("Recurso criado com sucesso"))
+})
+server.Route("/billing", func(router *nine.RouteGroup) error {
+    router.Get("/credits", func (c *nine.Context) error {
+        return c.JSON(nine.JSON{"credits": 5000})
+    })
+})
+accountGroup := server.Group("/account", authMiddleware)
+accountGroup.Get("/:name", func (c *nine.Context) error {
+    return c.JSON(nine.JSON{"account": c.Param("name")})
 })
 ```
 
@@ -98,9 +107,9 @@ server.Post("/create", func(req *nine.Request, res *nine.Response) error {
 The library also provides utilities for working with JSON:
 
 ```go
-server.Get("/user", func(req *nine.Request, res *nine.Response) error {
+server.Get("/user", func(c *nine.Context) error {
     data := nine.JSON{"name": "Alice", "age": 30}
-    res.JSON(data)
+    c.JSON(data)
 })
 ```
 
