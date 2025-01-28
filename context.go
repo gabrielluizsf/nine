@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"mime/multipart"
 	"net/http"
+	"os"
 )
 
 type Context struct {
@@ -24,6 +25,14 @@ func NewContext(
 		Request:  &Request{req: req},
 		Response: &Response{res: res},
 	}
+}
+
+func (c *Context) SendFile(filePath string) error {
+	b, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+	return c.Send(b)
 }
 
 func (c *Context) BodyParser(v any) error {
