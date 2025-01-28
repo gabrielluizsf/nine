@@ -17,6 +17,15 @@ import (
 
 type Handler func(req *Request, res *Response) error
 
+type HandlerWithContext func(c *Context) error
+
+func (h HandlerWithContext) Handler() Handler {
+	return func(req *Request, res *Response) error {
+		c := NewContext(req.Context(), req.HTTP(), res.HTTP())
+		return h(&c)
+	}
+}
+
 func (h Handler) Redirect(url string) Handler {
 	return func(req *Request, res *Response) error {
 		http.Redirect(res.res, req.req, url, http.StatusMovedPermanently)
@@ -235,123 +244,89 @@ func (s *Server) transformPath(path string) string {
 	return re.ReplaceAllString(path, "{$1}")
 }
 
-// Use adds a global middleware to the server's middleware stack.
-//
-// This method allows you to register middleware that will be executed for all
-// routes on the server, regardless of path or HTTP method.
-//
-//	server.Use(func(req *Request, res *Response) error {
-//		 slog.Info("nine[router]:", "method", req.Method(), "path", req.Path())
-//		 return nil
-//	})
-//
-//	server.Get("/login/{name}", func(req *Request, res *Response) error {
-//		 name := req.Param("name")
-//		 loginMessage := fmt.Sprintf("Welcome %s", name)
-//		 return res.JSON(JSON{"message": loginMessage})
-//	})
-func (s *Server) Use(middleware Handler) {
-	s.globalMiddlewares = append(s.globalMiddlewares, middleware)
-}
-
 // Get registers a route for handling GET requests at the specified endpoint.
-//
-//	server := nine.NewServer(5050)
-//	server.Get("/hello", func(req *nine.Request, res *nine.Response) error {
-//	     return res.Send([]byte("Hello World"))
-//	})
-func (s *Server) Get(endpoint string, handlers ...Handler) error {
-	if len(handlers) == 0 {
-		return ErrPutAHandler
+func (s *Server) Get(endpoint string, handlers ...any) error {
+	handler, middlewares, err := registerHandlers(handlers...)
+	if err != nil {
+		return err
 	}
-	lastIndex := len(handlers) - 1
-	handler := handlers[lastIndex]
+
 	r := Router{
 		pattern:     s.routePattern(http.MethodGet, endpoint),
 		handler:     handler,
-		middlewares: handlers[:lastIndex],
+		middlewares: middlewares,
 	}
 	return s.registerRoute(r)
 }
 
 // Post registers a route for POST requests at the specified endpoint.
-//
-//		server := nine.NewServer(5050)
-//		server.Post("/sayHello", func(req *nine.Request, res *nine.Response) error {
-//			 var body struct{
-//				Name string `json:"name"`
-//	         }
-//	         if err := nine.DecodeJSON(req.Body().Bytes(), &body); err != nil {
-//				return res.Status(http.StatusBadRequest).JSON(nine.JSON{"err": "invalid body"})
-//	      	 }
-//		  	 return res.Send([]byte("Hello "+body.Name))
-//		})
-func (s *Server) Post(endpoint string, handlers ...Handler) error {
-	if len(handlers) == 0 {
-		return ErrPutAHandler
+func (s *Server) Post(endpoint string, handlers ...any) error {
+	handler, middlewares, err := registerHandlers(handlers...)
+	if err != nil {
+		return err
 	}
-	lastIndex := len(handlers) - 1
-	handler := handlers[lastIndex]
+
 	r := Router{
 		pattern:     s.routePattern(http.MethodPost, endpoint),
 		handler:     handler,
-		middlewares: handlers[:lastIndex],
+		middlewares: middlewares,
 	}
 	return s.registerRoute(r)
 }
 
 // Put registers a route for PUT requests at the specified endpoint.
-//
-//	server := nine.NewServer(5050)
-//	server.Put("/user/change", handlers...)
-func (s *Server) Put(endpoint string, handlers ...Handler) error {
-	if len(handlers) == 0 {
-		return ErrPutAHandler
+func (s *Server) Put(endpoint string, handlers ...any) error {
+	handler, middlewares, err := registerHandlers(handlers...)
+	if err != nil {
+		return err
 	}
-	lastIndex := len(handlers) - 1
-	handler := handlers[lastIndex]
+
 	r := Router{
 		pattern:     s.routePattern(http.MethodPut, endpoint),
 		handler:     handler,
-		middlewares: handlers[:lastIndex],
+		middlewares: middlewares,
 	}
 	return s.registerRoute(r)
 }
 
 // Patch registers a route for PATCH requests at the specified endpoint.
-//
-//	server := nine.NewServer(5050)
-//	server.Patch("/version/update", handlers...)
-func (s *Server) Patch(endpoint string, handlers ...Handler) error {
-	if len(handlers) == 0 {
-		return ErrPutAHandler
+func (s *Server) Patch(endpoint string, handlers ...any) error {
+	handler, middlewares, err := registerHandlers(handlers...)
+	if err != nil {
+		return err
 	}
-	lastIndex := len(handlers) - 1
-	handler := handlers[lastIndex]
+
 	r := Router{
 		pattern:     s.routePattern(http.MethodPatch, endpoint),
 		handler:     handler,
-		middlewares: handlers[:lastIndex],
+		middlewares: middlewares,
 	}
 	return s.registerRoute(r)
 }
 
 // Delete registers a route for DELETE requests at the specified endpoint.
-//
-//	server := nine.NewServer(5050)
-//	server.Delete("/account/delete", handlers...)
-func (s *Server) Delete(endpoint string, handlers ...Handler) error {
-	if len(handlers) == 0 {
-		return ErrPutAHandler
+func (s *Server) Delete(endpoint string, handlers ...any) error {
+	handler, middlewares, err := registerHandlers(handlers...)
+	if err != nil {
+		return err
 	}
-	lastIndex := len(handlers) - 1
-	handler := handlers[lastIndex]
+
 	r := Router{
 		pattern:     s.routePattern(http.MethodDelete, endpoint),
 		handler:     handler,
-		middlewares: handlers[:lastIndex],
+		middlewares: middlewares,
 	}
 	return s.registerRoute(r)
+}
+
+// Use adds a global middleware to the server's middleware stack.
+func (s *Server) Use(middleware any) error {
+	handler, err := validateHandler(middleware)
+	if err != nil {
+		return fmt.Errorf("invalid middleware: %w", err)
+	}
+	s.globalMiddlewares = append(s.globalMiddlewares, handler)
+	return nil
 }
 
 func registerMiddlewares(handler http.Handler, middlewares ...Handler) http.Handler {
