@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"sort"
+	"strings"
 )
 
 type Handler func(req *Request, res *Response) error
@@ -39,6 +40,8 @@ type Server struct {
 	routes            Routes
 	globalMiddlewares []Handler
 	addr, port        string
+	corsEnabled       bool
+	corsHandler       Handler
 }
 
 type Router struct {
@@ -217,6 +220,7 @@ func (s *Server) setAddr() error {
 }
 
 func (s *Server) registerRoutes() {
+	registredCors := map[string]struct{}{}
 	for _, route := range s.routes {
 		finalHandler := httpHandler(route.handler, route.pattern)
 		if !route.servingFiles {
@@ -225,6 +229,18 @@ func (s *Server) registerRoutes() {
 		finalHandler = registerMiddlewares(finalHandler, s.globalMiddlewares...)
 		finalHandler = registerMiddlewares(finalHandler, route.middlewares...)
 		s.mux.Handle(route.pattern, finalHandler)
+		if s.corsEnabled {
+			parts := strings.SplitN(route.pattern, " ", 2)
+			if len(parts) < 2 {
+				return
+			}
+			endpoint := parts[1]
+			if _, exists := registredCors[endpoint]; !exists {
+				registredCors[endpoint] = struct{}{}
+				s.mux.Handle(s.routePattern(http.MethodOptions, endpoint),httpHandler(s.corsHandler, endpoint))
+			}
+		}
+
 	}
 }
 
