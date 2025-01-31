@@ -163,13 +163,13 @@ func (s *Server) Listen() error {
 		}
 		errCh <- nil
 	}()
-		
+
 	log.Println(banner(s.addr))
 	return <-errCh
 }
 
 func banner(address string) string {
-	logo :=  []string{
+	logo := []string{
 		"          _          ",
 		"   ____  (_)___  ___ ",
 		"  / __ \\/ / __ \\/ _ \\",
@@ -185,7 +185,6 @@ func banner(address string) string {
 		}
 	}
 
-	
 	contentWidth := max(maxLogoWidth, len(addressLine))
 	totalWidth := contentWidth + 4
 
@@ -218,7 +217,6 @@ func banner(address string) string {
 
 	return fmt.Sprintf("\n%s\n%s%s", top, content.String(), bottom)
 }
-
 
 // Shutdown gracefully stops the HTTP server, allowing any pending requests to complete.
 // This method should be called when you want to stop the server from accepting new connections
@@ -494,7 +492,9 @@ func httpMiddleware(m Handler, next http.Handler) http.Handler {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		next.ServeHTTP(w, r)
+		if !res.sent {
+			next.ServeHTTP(w, r)
+		}
 	})
 }
 
@@ -598,6 +598,7 @@ func (r *Request) Context() context.Context {
 type Response struct {
 	res        http.ResponseWriter
 	statusCode int
+	sent       bool
 }
 
 // HTTP returns the HTTP response.
@@ -643,6 +644,7 @@ const defaultStatusCode = http.StatusOK
 // It uses a defaultStatusCode if one isn't explicitly set.
 func (r *Response) Send(b []byte) error {
 	r.writeStatus()
+	r.sent = true
 	if len(b) > 0 {
 		r.SetHeader("Content-Type", http.DetectContentType(b))
 		_, err := r.res.Write(b)
@@ -657,6 +659,7 @@ func (r *Response) Send(b []byte) error {
 // into JSON format and setting the appropriate content-type and status code.
 func (r *Response) JSON(data JSON) error {
 	r.res.Header().Add("Content-Type", "application/json")
+	r.sent = true
 	if r.invalidStatusCode() {
 		r.statusCode = defaultStatusCode
 	}
@@ -667,6 +670,7 @@ func (r *Response) JSON(data JSON) error {
 // SendStatus sends the HTTP response with the specified status code.
 func (r *Response) SendStatus(statusCode int) error {
 	r.statusCode = statusCode
+	r.sent = true
 	return &ServerError{
 		StatusCode: r.statusCode,
 		Err:        errors.New(http.StatusText(r.statusCode)),
