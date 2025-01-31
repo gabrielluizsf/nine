@@ -643,38 +643,49 @@ const defaultStatusCode = http.StatusOK
 // automatically detecting and setting the Content-Type based on the content.
 // It uses a defaultStatusCode if one isn't explicitly set.
 func (r *Response) Send(b []byte) error {
-	r.writeStatus()
-	r.sent = true
-	if len(b) > 0 {
-		r.SetHeader("Content-Type", http.DetectContentType(b))
-		_, err := r.res.Write(b)
-		if err != nil {
-			return err
+	return r.write(func() error {
+		r.writeStatus()
+		if len(b) > 0 {
+			r.SetHeader("Content-Type", http.DetectContentType(b))
+			_, err := r.res.Write(b)
+			if err != nil {
+				return err
+			}
 		}
-	}
-	return nil
+		return nil
+	})
 }
 
 // JSON Sends a JSON response by encoding the provided data
 // into JSON format and setting the appropriate content-type and status code.
 func (r *Response) JSON(data JSON) error {
-	r.res.Header().Add("Content-Type", "application/json")
-	r.sent = true
-	if r.invalidStatusCode() {
-		r.statusCode = defaultStatusCode
-	}
-	r.res.WriteHeader(r.statusCode)
-	return json.NewEncoder(r.res).Encode(data)
+	return r.write(func() error {
+		r.res.Header().Add("Content-Type", "application/json")
+		if r.invalidStatusCode() {
+			r.statusCode = defaultStatusCode
+		}
+		r.res.WriteHeader(r.statusCode)
+		return json.NewEncoder(r.res).Encode(data)
+	})
 }
 
 // SendStatus sends the HTTP response with the specified status code.
 func (r *Response) SendStatus(statusCode int) error {
-	r.statusCode = statusCode
-	r.sent = true
-	return &ServerError{
-		StatusCode: r.statusCode,
-		Err:        errors.New(http.StatusText(r.statusCode)),
+	return r.write(func() error {
+		r.statusCode = statusCode
+		return &ServerError{
+			StatusCode: r.statusCode,
+			Err:        errors.New(http.StatusText(r.statusCode)),
+		}
+	})
+}
+
+func (r *Response) write(fn func() error) error {
+	if !r.sent {
+		r.sent = true
+		return fn()
 	}
+	return nil
 }
 
 func (r *Response) writeStatus() {
