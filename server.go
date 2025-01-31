@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"net"
 	"net/http"
@@ -150,15 +151,74 @@ func (s *ServerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //	}
 //	log.Fatal(server.Listen())
 func (s *Server) Listen() error {
+	errCh := make(chan error)
 	server := s.httpServer
 	server.Handler = s.Handler()
 	server.Addr = s.addr
-	err := server.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		return err
-	}
-	return nil
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			errCh <- err
+			return
+		}
+		errCh <- nil
+	}()
+		
+	log.Println(banner(s.addr))
+	return <-errCh
 }
+
+func banner(address string) string {
+	logo :=  []string{
+		"          _          ",
+		"   ____  (_)___  ___ ",
+		"  / __ \\/ / __ \\/ _ \\",
+		" / / / / / / / /  __/",
+		"/_/ /_/_/_/ /_/\\___/ ",
+		"                     ",
+	}
+	addressLine := fmt.Sprintf("http://127.0.0.1%s", address)
+	maxLogoWidth := 0
+	for _, line := range logo {
+		if len([]rune(line)) > maxLogoWidth {
+			maxLogoWidth = len([]rune(line))
+		}
+	}
+
+	
+	contentWidth := max(maxLogoWidth, len(addressLine))
+	totalWidth := contentWidth + 4
+
+	border := strings.Repeat("_", totalWidth)
+	top := fmt.Sprintf(" %s \n|%s|", border, strings.Repeat(" ", totalWidth))
+
+	var content strings.Builder
+	for _, line := range logo {
+		lineRunes := []rune(line)
+		spaces := totalWidth - len(lineRunes)
+		leftPad := spaces / 2
+		rightPad := spaces - leftPad
+		content.WriteString(fmt.Sprintf("|%s%s%s|\n",
+			strings.Repeat(" ", leftPad),
+			line,
+			strings.Repeat(" ", rightPad)))
+	}
+
+	content.WriteString(fmt.Sprintf("|%s|\n", strings.Repeat(" ", totalWidth)))
+
+	spaces := totalWidth - len(addressLine)
+	leftPad := spaces / 2
+	rightPad := spaces - leftPad
+	content.WriteString(fmt.Sprintf("|%s%s%s|\n",
+		strings.Repeat(" ", leftPad),
+		addressLine,
+		strings.Repeat(" ", rightPad)))
+
+	bottom := fmt.Sprintf("|%s|", strings.Repeat("_", totalWidth))
+
+	return fmt.Sprintf("\n%s\n%s%s", top, content.String(), bottom)
+}
+
 
 // Shutdown gracefully stops the HTTP server, allowing any pending requests to complete.
 // This method should be called when you want to stop the server from accepting new connections
@@ -237,7 +297,7 @@ func (s *Server) registerRoutes() {
 			endpoint := parts[1]
 			if _, exists := registredCors[endpoint]; !exists {
 				registredCors[endpoint] = struct{}{}
-				s.mux.Handle(s.routePattern(http.MethodOptions, endpoint),httpHandler(s.corsHandler, endpoint))
+				s.mux.Handle(s.routePattern(http.MethodOptions, endpoint), httpHandler(s.corsHandler, endpoint))
 			}
 		}
 
