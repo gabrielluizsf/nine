@@ -23,8 +23,8 @@ func NewContext(
 	ctx context.Context,
 	req *http.Request,
 	res http.ResponseWriter,
-) Context {
-	return Context{
+) *Context {
+	return &Context{
 		ctx:      ctx,
 		Request:  &Request{req: req},
 		Response: &Response{res: res},
@@ -62,7 +62,7 @@ func (c *Context) ParamsParser(v any) error {
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Field(i)
 		fieldType := typ.Field(i)
-	
+
 		paramName := fieldType.Tag.Get("param")
 		if paramName == "" {
 			paramName = fieldType.Name

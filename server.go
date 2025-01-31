@@ -24,7 +24,7 @@ type HandlerWithContext func(c *Context) error
 func (h HandlerWithContext) Handler() Handler {
 	return func(req *Request, res *Response) error {
 		c := NewContext(req.Context(), req.HTTP(), res.HTTP())
-		return h(&c)
+		return h(c)
 	}
 }
 
