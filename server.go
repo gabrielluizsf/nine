@@ -653,7 +653,6 @@ func ServeFiles(path http.FileSystem) Handler {
 			gz := gzip.NewWriter(res.HTTP())
 			defer gz.Close()
 			res.changeResponseWriter(&gzipResponseWriter{Writer: gz, ResponseWriter: res.HTTP()})
-			return nil
 		}
 
 		staticFileSystem.ServeHTTP(res.HTTP(), req.HTTP())
