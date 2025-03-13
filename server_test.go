@@ -1,6 +1,8 @@
 package nine
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -10,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -358,6 +361,43 @@ func TestServeFiles(t *testing.T) {
 		t.Fatalf("result: %s, expected: %s", result, expected)
 	}
 }
+
+func TestServeFilesWithGzip(t *testing.T) {
+    dirPath := t.TempDir()
+    filePath := filepath.Join(dirPath, "testfile.txt")
+    content := []byte("Test content for gzip")
+    if err := os.WriteFile(filePath, content, 0644); err != nil {
+        t.Fatal(err)
+    }
+
+    req := httptest.NewRequest(http.MethodGet, "/testfile.txt", nil)
+    req.Header.Set("Accept-Encoding", "gzip")
+
+    s := NewServer(0)
+    s.ServeFiles("/", dirPath)
+
+    res := s.Test().Request(req)
+
+    if encoding := res.Header().Get("Content-Encoding"); encoding != "gzip" {
+        t.Fatalf("Expected Content-Encoding: gzip, got: %s", encoding)
+    }
+
+    gzReader, err := gzip.NewReader(res.Body)
+    if err != nil {
+        t.Fatal("Failed to create gzip reader:", err)
+    }
+    defer gzReader.Close()
+
+    decompressedBody, err := io.ReadAll(gzReader)
+    if err != nil {
+        t.Fatal("Failed to decompress body:", err)
+    }
+
+    if !bytes.Equal(decompressedBody, content) {
+        t.Fatalf("Incorrect content. Expected: %s, Got: %s", content, decompressedBody)
+    }
+}
+
 
 func TestSetAddr(t *testing.T) {
 	port := "7080"
