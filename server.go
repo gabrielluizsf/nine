@@ -10,11 +10,9 @@ import (
 	"io"
 	"log"
 	"math"
-	"mime"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -639,11 +637,24 @@ func (r *Response) SetHeader(key, value string) {
 func ServeFiles(path http.FileSystem) Handler {
 	staticFileSystem := http.FileServer(path)
 	return func(req *Request, res *Response) error {
-		ext := filepath.Ext(req.HTTP().URL.Path)
-		if mimeType := mime.TypeByExtension(ext); mimeType != "" {
-			res.HTTP().Header().Set("Content-Type", mimeType)
+		filePath := req.Path()
+		if filePath[len(filePath)-1] == '/' {
+			filePath += "index.html"
+		}
+		file, err := path.Open(filePath)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		buffer := make([]byte, 512)
+		n, err := file.Read(buffer)
+		if err != nil && err != io.EOF {
+			return err
 		}
 
+		contentType := http.DetectContentType(buffer[:n])
+		req.HTTP().Header.Set("Content-Type", contentType)
 		res.HTTP().Header().Set("X-Content-Type-Options", "nosniff")
 		res.HTTP().Header().Set("X-Frame-Options", "DENY")
 		res.HTTP().Header().Set("X-XSS-Protection", "1; mode=block")
