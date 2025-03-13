@@ -2,6 +2,7 @@ package nine
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,9 +10,11 @@ import (
 	"io"
 	"log"
 	"math"
+	"mime"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -610,6 +613,10 @@ func (r *Response) HTTP() http.ResponseWriter {
 	return r.res
 }
 
+func (r *Response) changeResponseWriter(res http.ResponseWriter) {
+	r.res = res
+}
+
 // Status sets the HTTP response status code
 // and returns the Response object for method chaining.
 func (r *Response) Status(statusCode int) *Response {
@@ -632,9 +639,35 @@ func (r *Response) SetHeader(key, value string) {
 func ServeFiles(path http.FileSystem) Handler {
 	staticFileSystem := http.FileServer(path)
 	return func(req *Request, res *Response) error {
-		staticFileSystem.ServeHTTP(res.res, req.req)
+		ext := filepath.Ext(req.HTTP().URL.Path)
+		if mimeType := mime.TypeByExtension(ext); mimeType != "" {
+			res.HTTP().Header().Set("Content-Type", mimeType)
+		}
+
+		res.HTTP().Header().Set("X-Content-Type-Options", "nosniff")
+		res.HTTP().Header().Set("X-Frame-Options", "DENY")
+		res.HTTP().Header().Set("X-XSS-Protection", "1; mode=block")
+
+		if strings.Contains(req.Header("Accept-Encoding"), "gzip") {
+			res.HTTP().Header().Set("Content-Encoding", "gzip")
+			gz := gzip.NewWriter(res.HTTP())
+			defer gz.Close()
+			res.changeResponseWriter(&gzipResponseWriter{Writer: gz, ResponseWriter: res.HTTP()})
+			return nil
+		}
+
+		staticFileSystem.ServeHTTP(res.HTTP(), req.HTTP())
 		return nil
 	}
+}
+
+type gzipResponseWriter struct {
+	io.Writer
+	http.ResponseWriter
+}
+
+func (w *gzipResponseWriter) Write(b []byte) (int, error) {
+	return w.Writer.Write(b)
 }
 
 const defaultStatusCode = http.StatusOK
