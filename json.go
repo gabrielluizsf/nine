@@ -69,7 +69,7 @@ func (g GenericJSON[K, V]) Buffer() (*bytes.Buffer, error) {
 
 // JSON represents a map of strings to arbitrary values,
 // facilitating the manipulation of JSON data in map format.
-type JSON map[string]interface{}
+type JSON map[string]any
 
 // Bytes converts the JSON into a byte slice using JSON encoding.
 // It returns a slice of bytes containing the JSON representation and an error, if any.
