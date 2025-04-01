@@ -36,6 +36,11 @@ type Buffer interface {
 //	}
 type GenericJSON[K comparable, V any] map[K]V
 
+// String returns a string representation of the JSON data.
+func (g GenericJSON[K, V]) String() string {
+	return jsonString(g)
+}
+
 // buffer converts a Buffer bytes to a *bytes.Buffer.
 // Returns the *bytes.Buffer containing the data and an error if any.
 func buffer(buf Buffer) (*bytes.Buffer, error) {
@@ -69,7 +74,18 @@ func (g GenericJSON[K, V]) Buffer() (*bytes.Buffer, error) {
 
 // JSON represents a map of strings to arbitrary values,
 // facilitating the manipulation of JSON data in map format.
-type JSON map[string]interface{}
+type JSON map[string]any
+
+// String returns a string representation of the JSON data.
+func (j JSON) String() string {
+	return jsonString(j)
+}
+
+// jsonString returns a string representation of the JSON data.
+func jsonString(JSON Buffer) string {
+	b, _ := json.MarshalIndent(JSON, "", "  ")
+	return string(b)
+}
 
 // Bytes converts the JSON into a byte slice using JSON encoding.
 // It returns a slice of bytes containing the JSON representation and an error, if any.
