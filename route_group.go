@@ -1,7 +1,6 @@
 package nine
 
 import (
-	"net/http"
 	"strings"
 )
 
@@ -49,77 +48,27 @@ func (g *RouteGroup) Route(basePath string, fn func(router *RouteGroup)) {
 
 // Get registers a GET route within the group
 func (g *RouteGroup) Get(path string, handlers ...any) error {
-	handler, middlewares, err := registerHandlers(handlers...)
-	if err != nil {
-		return err
-	}
-	allMiddlewares := append(g.middlewares, middlewares...)
-	r := Router{
-		pattern:     g.server.routePattern(http.MethodGet, g.fullPath(path)),
-		handler:     handler,
-		middlewares: allMiddlewares,
-	}
-	return g.server.registerRoute(r)
+	return g.server.Get(g.fullPath(path), handlers...)
 }
 
 // Post registers a POST route within the group
 func (g *RouteGroup) Post(path string, handlers ...any) error {
-	handler, middlewares, err := registerHandlers(handlers...)
-	if err != nil {
-		return err
-	}
-	allMiddlewares := append(g.middlewares, middlewares...)
-	r := Router{
-		pattern:     g.server.routePattern(http.MethodPost, g.fullPath(path)),
-		handler:     handler,
-		middlewares: allMiddlewares,
-	}
-	return g.server.registerRoute(r)
+	return g.server.Post(g.fullPath(path), handlers...)
 }
 
 // Put registers a PUT route within the group
 func (g *RouteGroup) Put(path string, handlers ...any) error {
-	handler, middlewares, err := registerHandlers(handlers...)
-	if err != nil {
-		return err
-	}
-	allMiddlewares := append(g.middlewares, middlewares...)
-	r := Router{
-		pattern:     g.server.routePattern(http.MethodPut, g.fullPath(path)),
-		handler:     handler,
-		middlewares: allMiddlewares,
-	}
-	return g.server.registerRoute(r)
+	return g.server.Put(g.fullPath(path), handlers...)
 }
 
 // Patch registers a PATCH route within the group
 func (g *RouteGroup) Patch(path string, handlers ...any) error {
-	handler, middlewares, err := registerHandlers(handlers...)
-	if err != nil {
-		return err
-	}
-	allMiddlewares := append(g.middlewares, middlewares...)
-	r := Router{
-		pattern:     g.server.routePattern(http.MethodPatch, g.fullPath(path)),
-		handler:     handler,
-		middlewares: allMiddlewares,
-	}
-	return g.server.registerRoute(r)
+	return g.server.Patch(g.fullPath(path), handlers...)
 }
 
 // Delete registers a DELETE route within the group
 func (g *RouteGroup) Delete(path string, handlers ...any) error {
-	handler, middlewares, err := registerHandlers(handlers...)
-	if err != nil {
-		return err
-	}
-	allMiddlewares := append(g.middlewares, middlewares...)
-	r := Router{
-		pattern:     g.server.routePattern(http.MethodDelete, g.fullPath(path)),
-		handler:     handler,
-		middlewares: allMiddlewares,
-	}
-	return g.server.registerRoute(r)
+	return g.server.Delete(g.fullPath(path), handlers...)
 }
 
 // fullPath combines the group's base path with the provided path
