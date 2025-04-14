@@ -1,4 +1,4 @@
-package nine
+package server
 
 import (
 	"bytes"
@@ -192,7 +192,7 @@ func (c *Context) QueryParser(v any) error {
 		return err
 	}
 
-	return json.DecodeJSON(data, v)
+	return json.Decode(data, v)
 }
 
 func (c *Context) ReqHeaderParser(v any) error {
@@ -274,8 +274,8 @@ func (c *Context) JSON(data any) error {
 	if err != nil {
 		return err
 	}
-	var payload JSON
-	if err := DecodeJSON(b, &payload); err != nil {
+	var payload map[string]any
+	if err := json.Decode(b, &payload); err != nil {
 		return err
 	}
 	return c.Response.JSON(payload)
@@ -286,7 +286,7 @@ func parseForm(form any, v any) error {
 	if err != nil {
 		return err
 	}
-	return json.DecodeJSON(data, v)
+	return json.Decode(data, v)
 }
 
 func splitComma(s string) []string {

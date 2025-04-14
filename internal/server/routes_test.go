@@ -1,4 +1,4 @@
-package nine
+package server
 
 import (
 	"net/http"
@@ -21,10 +21,10 @@ func TestRoutes(t *testing.T) {
 	expected := Routes{{pattern: "/"}, {pattern: "/user"}, {pattern: "/user/{id}"}}
 	assert.Equal(t, r, expected, "should be equal")
 
-	server := NewServer(42)
+	server := New(42)
 
-	payload := JSON{
-		"user": JSON{
+	payload := JSON[JSON[any]]{
+		"user": JSON[any]{
 			"id":   1,
 			"name": "gabrielluizsf",
 		},

@@ -1,4 +1,4 @@
-package nine
+package server
 
 import (
 	"bytes"
@@ -164,7 +164,7 @@ func TestContextJSON(t *testing.T) {
 	assert.Equal(t, res.Header().Get("Content-Type"), "application/json")
 
 	var jsonResponse map[string]string
-	err = json.DecodeJSON(res.Body.Bytes(), &jsonResponse)
+	err = json.Decode(res.Body.Bytes(), &jsonResponse)
 	assert.Nil(t, err)
 	assert.Equal(t, jsonResponse["message"], "success")
 }

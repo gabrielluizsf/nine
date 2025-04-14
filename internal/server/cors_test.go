@@ -1,4 +1,4 @@
-package nine
+package server
 
 import (
 	"net/http"
@@ -62,7 +62,7 @@ func TestCors(t *testing.T) {
 	})
 
 	t.Run("Max Age", func(t *testing.T) {
-		server := NewServer(5000)
+		server := New(5000)
 		corsMiddleware := Cors(server, CorsConfig{
 			MaxAge: 600,
 		})
@@ -93,7 +93,7 @@ func TestCors(t *testing.T) {
 }
 
 func setupCorsTestServer() *Server {
-	server := NewServer("8080")
+	server := New("8080")
 	server.Route("/user", func(router *RouteGroup) {
 		router.Post("/create", func(c *Context) error {
 			return c.JSON(map[string]bool{"created": true})

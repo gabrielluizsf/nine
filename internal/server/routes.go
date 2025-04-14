@@ -1,4 +1,4 @@
-package nine
+package server
 
 type Routes []Router
 
