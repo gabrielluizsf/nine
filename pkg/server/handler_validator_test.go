@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/i9si-sistemas/assert"
-	public "github.com/i9si-sistemas/nine/pkg/server"
 )
 
 func TestValidateHandler(t *testing.T) {
@@ -17,28 +16,28 @@ func TestValidateHandler(t *testing.T) {
 	}{
 		{
 			name: "valid Handler function",
-			handler: public.Handler(func(req *public.Request, res *public.Response) error {
+			handler: Handler(func(req *Request, res *Response) error {
 				return nil
 			}),
 			wantErr: false,
 		},
 		{
 			name: "valid HandlerWithContext",
-			handler: public.HandlerWithContext(func(c *public.Context) error {
+			handler: HandlerWithContext(func(c *Context) error {
 				return nil
 			}),
 			wantErr: false,
 		},
 		{
 			name: "valid raw handler function",
-			handler: func(req *public.Request, res *public.Response) error {
+			handler: func(req *Request, res *Response) error {
 				return nil
 			},
 			wantErr: false,
 		},
 		{
 			name: "valid raw context handler function",
-			handler: func(c *public.Context) error {
+			handler: func(c *Context) error {
 				return nil
 			},
 			wantErr: false,
@@ -64,10 +63,10 @@ func TestValidateHandler(t *testing.T) {
 }
 
 func TestRegisterHandlers(t *testing.T) {
-	validHandler := public.Handler(func(req *public.Request, res *public.Response) error {
+	validHandler := Handler(func(req *Request, res *Response) error {
 		return nil
 	})
-	validMiddleware := public.Handler(func(req *public.Request, res *public.Response) error {
+	validMiddleware := Handler(func(req *Request, res *Response) error {
 		return nil
 	})
 	invalidHandler := "not a handler"
@@ -129,19 +128,19 @@ func TestHandlerWithContextConversion(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		handler public.HandlerWithContext
+		handler HandlerWithContext
 		wantErr error
 	}{
 		{
 			name: "successful conversion",
-			handler: func(c *public.Context) error {
+			handler: func(c *Context) error {
 				return nil
 			},
 			wantErr: nil,
 		},
 		{
 			name: "error propagation",
-			handler: func(c *public.Context) error {
+			handler: func(c *Context) error {
 				return testErr
 			},
 			wantErr: testErr,
@@ -152,8 +151,8 @@ func TestHandlerWithContextConversion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			converted := tt.handler.Handler()
 
-			req := public.NewRequest(&http.Request{})
-			res := public.NewResponse(nil)
+			req := NewRequest(&http.Request{})
+			res := NewResponse(nil)
 
 			err := converted(&req, &res)
 			assert.Equal(t, err, tt.wantErr)

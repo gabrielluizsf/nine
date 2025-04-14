@@ -14,24 +14,22 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-
-	public "github.com/i9si-sistemas/nine/pkg/server"
 )
 
 type Server struct {
 	mux               *http.ServeMux
 	httpServer        *http.Server
 	routes            Routes
-	globalMiddlewares []public.Handler
+	globalMiddlewares []Handler
 	addr, port        string
 	corsEnabled       bool
-	corsHandler       public.Handler
+	corsHandler       Handler
 }
 
 type Router struct {
 	pattern      string
-	handler      public.Handler
-	middlewares  []public.Handler
+	handler      Handler
+	middlewares  []Handler
 	servingFiles bool
 }
 
@@ -46,7 +44,7 @@ func New[P int | string](port P) *Server {
 	}
 }
 
-func (s *Server) EnableCors(h public.HandlerWithContext) {
+func (s *Server) EnableCors(h HandlerWithContext) {
 	s.corsEnabled = true
 	s.corsHandler = h.Handler()
 }
@@ -72,10 +70,10 @@ func (s *Server) ServeFiles(pattern, path string) {
 	s.registerRoute(r)
 }
 
-func (s *Server) notFoundMiddleware(req *public.Request, res *public.Response) error {
+func (s *Server) notFoundMiddleware(req *Request, res *Response) error {
 	if exists := s.patternExists(req.Method(), req.Path()); !exists {
 		code := http.StatusNotFound
-		return &public.Error{
+		return &Error{
 			StatusCode: code,
 			Err:        errors.New(http.StatusText(code)),
 		}
@@ -391,7 +389,7 @@ func (s *Server) Use(middleware any) error {
 	return nil
 }
 
-func registerMiddlewares(handler http.Handler, middlewares ...public.Handler) http.Handler {
+func registerMiddlewares(handler http.Handler, middlewares ...Handler) http.Handler {
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		handler = httpMiddleware(middlewares[i], handler)
 	}
@@ -406,7 +404,7 @@ type TestServer struct {
 //
 //	server := nine.NewServer(8080)
 //	message := "Hello World"
-//	server.Get("/helloWorld", func(req *public.Request, res *Response) error {
+//	server.Get("/helloWorld", func(req *Request, res *Response) error {
 //		return res.Send([]byte(message))
 //	})
 //	testServer := server.Test()
@@ -420,7 +418,7 @@ func (s *Server) Test() *TestServer {
 //
 //		server := nine.NewServer(8080)
 //		message := "Hello World"
-//		server.Get("/helloWorld", func(req *public.Request, res *Response) error {
+//		server.Get("/helloWorld", func(req *Request, res *Response) error {
 //		   return res.Send([]byte(message))
 //		})
 //	    res := server.Test().Request(req)
@@ -434,12 +432,12 @@ func (t *TestServer) Request(r *http.Request) *httptest.ResponseRecorder {
 	return w
 }
 
-func httpMiddleware(m public.Handler, next http.Handler) http.Handler {
+func httpMiddleware(m Handler, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		req := public.NewRequest(r)
-		res := public.NewResponse(w)
+		req := NewRequest(r)
+		res := NewResponse(w)
 		if err := m(&req, &res); err != nil {
-			if srvErr, ok := err.(*public.Error); ok && srvErr != nil {
+			if srvErr, ok := err.(*Error); ok && srvErr != nil {
 				srvErr.ServeHTTP(w, r)
 				return
 			}
@@ -452,12 +450,12 @@ func httpMiddleware(m public.Handler, next http.Handler) http.Handler {
 	})
 }
 
-func httpHandler(h public.Handler, pattern string) http.Handler {
+func httpHandler(h Handler, pattern string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		req := public.NewRequest(r, pattern)
-		res := public.NewResponse(w)
+		req := NewRequest(r, pattern)
+		res := NewResponse(w)
 		if err := h(&req, &res); err != nil {
-			if srvErr, ok := err.(*public.Error); ok && srvErr != nil {
+			if srvErr, ok := err.(*Error); ok && srvErr != nil {
 				srvErr.ServeHTTP(w, r)
 				return
 			}
@@ -474,9 +472,9 @@ func httpHandler(h public.Handler, pattern string) http.Handler {
 //	s.ServeFiles("/", "./static")
 //
 // ServeFiles returns a Handler that serves static files from the specified http.FileSystem.
-func ServeFiles(path http.FileSystem) public.Handler {
+func ServeFiles(path http.FileSystem) Handler {
 	staticFileSystem := http.FileServer(path)
-	return func(req *public.Request, res *public.Response) error {
+	return func(req *Request, res *Response) error {
 		filePath := req.Path()
 		if filePath[len(filePath)-1] == '/' {
 			filePath += "index.html"

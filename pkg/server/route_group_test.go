@@ -7,7 +7,6 @@ import (
 
 	"github.com/i9si-sistemas/assert"
 	"github.com/i9si-sistemas/nine/internal/json"
-	 public "github.com/i9si-sistemas/nine/pkg/server"
 )
 
 func TestRouteGroup(t *testing.T) {
@@ -19,9 +18,9 @@ func TestRouteGroup(t *testing.T) {
 	type JSON map[string]any
 	accounts := make(map[string]Account, 0)
 	testServer.Route("/account", func(router *RouteGroup) {
-		router.Post("/create", func(c *public.Context) error {
+		router.Post("/create", func(c *Context) error {
 			var body Account
-			if err := public.Body(c.Request, &body); err != nil {
+			if err := Body(c.Request, &body); err != nil {
 				return c.Status(http.StatusBadRequest).JSON(JSON{
 					"message": "invalid body",
 				})
@@ -34,7 +33,7 @@ func TestRouteGroup(t *testing.T) {
 			}
 			return c.JSON(response)
 		})
-		router.Get("/:name", func(c *public.Context) error {
+		router.Get("/:name", func(c *Context) error {
 			acc, ok := accounts[c.Param("name")]
 			if !ok {
 				return c.SendStatus(http.StatusNotFound)
@@ -65,17 +64,17 @@ func TestGroup(t *testing.T) {
 		Age   int    `json:"age"`
 		Money int64  `json:"money"`
 	}
-	accounts := make(JSON[Account], 0)
+	accounts := make(JSON, 0)
 	accountGroup := testServer.Group("/account")
-	accountGroup.Post("/create", func(c *public.Context) error {
+	accountGroup.Post("/create", func(c *Context) error {
 		var body Account
-		if err := public.Body(c.Request, &body); err != nil {
-			return c.Status(http.StatusBadRequest).JSON(JSON[string]{
+		if err := Body(c.Request, &body); err != nil {
+			return c.Status(http.StatusBadRequest).JSON(JSON{
 				"message": "invalid body",
 			})
 		}
 		_, ok := accounts[body.Name]
-		response := JSON[bool]{"created": !ok}
+		response := JSON{"created": !ok}
 		if !ok {
 			accounts[body.Name] = body
 			return c.Status(http.StatusCreated).JSON(response)
@@ -83,17 +82,17 @@ func TestGroup(t *testing.T) {
 		return c.JSON(response)
 	})
 	profileGroup := accountGroup.Group("/profile")
-	profileGroup.Get("/:name", func(c *public.Context) error {
+	profileGroup.Get("/:name", func(c *Context) error {
 		acc, ok := accounts[c.Param("name")]
 		if !ok {
 			return c.SendStatus(http.StatusNotFound)
 		}
-		return c.JSON(JSON[Account]{
+		return c.JSON(JSON{
 			"account": acc,
 		})
 	})
 	profileGroup.Route("/photo", func(router *RouteGroup) {
-		router.Get("/:name", func(c *public.Context) error {
+		router.Get("/:name", func(c *Context) error {
 			return c.Send([]byte(c.Param("name")))
 		})
 	})
@@ -121,7 +120,7 @@ func assertGroupEndpoints(t assert.T, testServer *Server) {
 	var response struct {
 		Created bool `json:"created"`
 	}
-	payload, err := JSON[any]{
+	payload, err := JSON{
 		"name":  "Gabriel Luiz",
 		"age":   23,
 		"money": 5000,
@@ -135,7 +134,7 @@ func assertGroupEndpoints(t assert.T, testServer *Server) {
 	assert.NoError(t, err)
 	assert.True(t, response.Created)
 
-	payload, err = JSON[any]{
+	payload, err = JSON{
 		"name":  "Gabriel Luiz",
 		"age":   23,
 		"money": 5000000,

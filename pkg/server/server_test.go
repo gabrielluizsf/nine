@@ -18,14 +18,13 @@ import (
 	"time"
 
 	"github.com/i9si-sistemas/nine/internal/json"
-	public "github.com/i9si-sistemas/nine/pkg/server"
 )
 
 func TestRequestBody(t *testing.T) {
 	bodyContent := "test body"
 	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(bodyContent))
 
-	request := public.NewRequest(req)
+	request := NewRequest(req)
 	body, err := io.ReadAll(request.Body())
 	if err != nil {
 		t.Fatalf("error reading request body: %v", err)
@@ -40,7 +39,7 @@ func TestRequestHeader(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("X-Test-Header", "header-value")
 
-	request := public.NewRequest(req)
+	request := NewRequest(req)
 	value := request.Header("X-Test-Header")
 	if value != "header-value" {
 		t.Errorf("expected 'header-value', got '%s'", value)
@@ -49,7 +48,7 @@ func TestRequestHeader(t *testing.T) {
 
 func TestRequestQuery(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/?key=value", nil)
-	request := public.NewRequest(req)
+	request := NewRequest(req)
 
 	queryValue := request.Query("key")
 	if queryValue != "value" {
@@ -66,17 +65,17 @@ func TestRequestContext(t *testing.T) {
 	ctx := context.WithValue(context.Background(), key("message"), value("Hello Context"))
 	req = req.WithContext(ctx)
 
-	request := public.NewRequest(req)
+	request := NewRequest(req)
 	if request.Context().Value(key("message")) != value("Hello Context") {
 		t.Errorf("expected 'value' in context, but got '%v'", request.Context().Value("key"))
 	}
 }
 
 func TestResponseJSON(t *testing.T) {
-	payload := JSON[any]{
+	payload := JSON{
 		"username": "gabrielluizsf",
 	}
-	handler := func(req *public.Request, res *public.Response) error {
+	handler := func(req *Request, res *Response) error {
 		return res.Status(http.StatusCreated).JSON(payload)
 	}
 
@@ -100,7 +99,7 @@ func TestResponseJSON(t *testing.T) {
 		t.Fatal("invalid body")
 	}
 	err := errors.New("err")
-	handler = func(req *public.Request, res *public.Response) error {
+	handler = func(req *Request, res *Response) error {
 		return err
 	}
 	h = httpHandler(handler, "/")
@@ -109,12 +108,12 @@ func TestResponseJSON(t *testing.T) {
 	if w.Result().StatusCode != http.StatusInternalServerError {
 		t.Fail()
 	}
-	serverErr := &public.Error{
+	serverErr := &Error{
 		StatusCode:  http.StatusServiceUnavailable,
 		ContentType: "application/json",
 		Err:         err,
 	}
-	handler = func(req *public.Request, res *public.Response) error {
+	handler = func(req *Request, res *Response) error {
 		return serverErr
 	}
 	h = httpHandler(handler, "/")
@@ -134,7 +133,7 @@ func TestServerError(t *testing.T) {
 
 func assertServerError(t *testing.T, contentType, errMessage string) {
 	w := httptest.NewRecorder()
-	serverErr := &public.Error{
+	serverErr := &Error{
 		StatusCode:  http.StatusInternalServerError,
 		ContentType: contentType,
 		Err:         errors.New(errMessage),
@@ -196,7 +195,7 @@ func TestPort(t *testing.T) {
 func TestHandler(t *testing.T) {
 	server := New(31312)
 	b := []byte("Hello World")
-	var helloWorldHandler public.Handler = func(req *public.Request, res *public.Response) error {
+	var helloWorldHandler Handler = func(req *Request, res *Response) error {
 		return res.Send(b)
 	}
 	server.Get("/", helloWorldHandler)
@@ -227,16 +226,16 @@ func TestHandler(t *testing.T) {
 func TestBodyClone(t *testing.T) {
 	server := New(8278427)
 
-	server.Use(func(req *public.Request, res *public.Response) error {
+	server.Use(func(req *Request, res *Response) error {
 		b := req.Body().Bytes()
 		log.Println("body:", string(b))
 		return nil
 	})
 
-	server.Post("/", func(req *public.Request, res *public.Response) error {
+	server.Post("/", func(req *Request, res *Response) error {
 		return res.Send(req.Body().Bytes())
 	})
-	body, err := JSON[string]{
+	body, err := JSON{
 		"message": "Hello World",
 	}.Buffer()
 	if err != nil {
@@ -252,7 +251,7 @@ func TestBodyClone(t *testing.T) {
 }
 
 func TestResponseStatus(t *testing.T) {
-	handler := func(req *public.Request, res *public.Response) error {
+	handler := func(req *Request, res *Response) error {
 		return res.SendStatus(http.StatusInternalServerError)
 	}
 
@@ -269,12 +268,12 @@ func TestResponseStatus(t *testing.T) {
 }
 
 func TestMiddleware(t *testing.T) {
-	middleware := func(req *public.Request, res *public.Response) error {
+	middleware := func(req *Request, res *Response) error {
 		res.SetHeader("X-Middleware", "processed")
 		return nil
 	}
 	message := "Hello World"
-	handler := func(req *public.Request, res *public.Response) error {
+	handler := func(req *Request, res *Response) error {
 		return res.Send([]byte(message))
 	}
 
@@ -292,13 +291,13 @@ func TestMiddleware(t *testing.T) {
 		t.Errorf("expected body %s, got '%s'", w.Body.String(), message)
 	}
 	statusCode := http.StatusInternalServerError
-	err := &public.Error{
+	err := &Error{
 		StatusCode:  statusCode,
 		ContentType: "application/json",
 		Err:         errors.New(http.StatusText(statusCode)),
 	}
 
-	middleware = func(req *public.Request, res *public.Response) error {
+	middleware = func(req *Request, res *Response) error {
 		return err
 	}
 	finalHandler = httpMiddleware(middleware, httpHandler(handler, "/"))
@@ -313,7 +312,7 @@ func TestMiddleware(t *testing.T) {
 		t.Fail()
 	}
 
-	middleware = func(req *public.Request, res *public.Response) error {
+	middleware = func(req *Request, res *Response) error {
 		return err.Err
 	}
 	finalHandler = httpMiddleware(middleware, httpHandler(handler, "/"))
@@ -415,10 +414,10 @@ func TestTransformPath(t *testing.T) {
 func TestTestServer(t *testing.T) {
 	server := New(8080)
 	message := "Hello World"
-	server.Get("/helloWorld", func(req *public.Request, res *public.Response) error {
+	server.Get("/helloWorld", func(req *Request, res *Response) error {
 		return res.Send([]byte(message))
 	})
-	server.Post("/user/welcome", func(req *public.Request, res *public.Response) error {
+	server.Post("/user/welcome", func(req *Request, res *Response) error {
 		var body struct {
 			Usename string `json:"username"`
 		}
@@ -426,7 +425,7 @@ func TestTestServer(t *testing.T) {
 			res.SendStatus(http.StatusBadRequest)
 			return nil
 		}
-		return res.JSON(JSON[string]{"message": fmt.Sprintf("Welcome %s", body.Usename)})
+		return res.JSON(JSON{"message": fmt.Sprintf("Welcome %s", body.Usename)})
 	})
 	req, err := http.NewRequest(http.MethodGet, "/helloWorld", nil)
 	if err != nil {
@@ -437,7 +436,7 @@ func TestTestServer(t *testing.T) {
 	if result != message {
 		t.Fatalf("result: %s, expected: %s", result, message)
 	}
-	buf, err := JSON[string]{"username": "gabrielluizsf"}.Buffer()
+	buf, err := JSON{"username": "gabrielluizsf"}.Buffer()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -461,7 +460,7 @@ func TestTestServer(t *testing.T) {
 func TestShutdown(t *testing.T) {
 	server := New("")
 
-	server.Get("/", func(req *public.Request, res *public.Response) error {
+	server.Get("/", func(req *Request, res *Response) error {
 		return nil
 	})
 
@@ -474,20 +473,20 @@ func TestShutdown(t *testing.T) {
 func TestUse(t *testing.T) {
 	message := "new request received"
 	server := New(5050)
-	server.Use(func(req *public.Request, res *public.Response) error {
+	server.Use(func(req *Request, res *Response) error {
 		slog.Info("nine[router]:", "method", req.Method(), "path", req.Path())
 		res.SetHeader("Message", message)
 		return nil
 	})
-	server.Get("/login/{name}", func(req *public.Request, res *public.Response) error {
+	server.Get("/login/{name}", func(req *Request, res *Response) error {
 		name := req.Param("name")
 		loginMessage := fmt.Sprintf("Welcome %s", name)
-		return res.JSON(JSON[string]{"message": loginMessage})
+		return res.JSON(JSON{"message": loginMessage})
 	})
-	server.Post("/account/created", func(req *public.Request, res *public.Response) error {
-		return res.JSON(JSON[string]{"message": "account created"})
+	server.Post("/account/created", func(req *Request, res *Response) error {
+		return res.JSON(JSON{"message": "account created"})
 	})
-	server.Patch("/account/{id}", func(req *public.Request, res *public.Response) error {
+	server.Patch("/account/{id}", func(req *Request, res *Response) error {
 		id := req.Param("id")
 		var body struct {
 			Name string `json:"name"`
@@ -497,7 +496,7 @@ func TestUse(t *testing.T) {
 			return nil
 		}
 		updateMessage := fmt.Sprintf("Account name with ID %s is changed to %s", id, body.Name)
-		return res.JSON(JSON[string]{"message": updateMessage})
+		return res.JSON(JSON{"message": updateMessage})
 	})
 
 	type post struct {
@@ -505,7 +504,7 @@ func TestUse(t *testing.T) {
 		Title       string `json:"title"`
 		Description string `json:"description"`
 	}
-	server.Put("/account/{id}/post", func(req *public.Request, res *public.Response) error {
+	server.Put("/account/{id}/post", func(req *Request, res *Response) error {
 		id := req.Param("id")
 		var body post
 		if err := json.Decode(req.Body().Bytes(), &body); err != nil {
@@ -513,9 +512,9 @@ func TestUse(t *testing.T) {
 			return nil
 		}
 		updateMessage := fmt.Sprintf("Post with id %s is changed to %s", id, body)
-		return res.JSON(JSON[string]{"message": updateMessage})
+		return res.JSON(JSON{"message": updateMessage})
 	})
-	server.Delete("/account/{id}", func(req *public.Request, res *public.Response) error {
+	server.Delete("/account/{id}", func(req *Request, res *Response) error {
 		_ = req.Param("id")
 		res.SendStatus(http.StatusNoContent)
 		return nil
