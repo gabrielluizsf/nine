@@ -1,4 +1,4 @@
-package nine
+package server
 
 import (
 	"bytes"
@@ -30,7 +30,7 @@ func TestContext(t *testing.T) {
 	assert.NotEmpty(t, c)
 	assert.NotNil(t, ctx)
 	assert.Equal(t, c.ctx, ctx)
-	assert.Equal(t, c.Request.req, req)
+	assert.Equal(t, c.Request.HTTP(), req)
 	assert.Equal(t, c.Response.res, res)
 }
 
@@ -99,7 +99,7 @@ func TestSendStatus(t *testing.T) {
 
 	err := c.SendStatus(http.StatusNotFound)
 	assert.Equal(t, err.Error(), "Not Found")
-	serverErr, ok := err.(*ServerError)
+	serverErr, ok := err.(*Error)
 	assert.True(t, ok)
 	assert.Equal(t, serverErr.StatusCode, http.StatusNotFound)
 }
@@ -125,7 +125,8 @@ func TestParamsParser(t *testing.T) {
 		UserID int `param:"userID"`
 	}
 
-	context.Request = &Request{req: context.Request.req, pattern: "/user/{userID}/profile"}
+	newReq := NewRequest(context.Request.HTTP(), "/user/{userID}/profile")
+	context.Request = &newReq
 
 	var params Params
 	err := context.ParamsParser(&params)
@@ -164,7 +165,7 @@ func TestContextJSON(t *testing.T) {
 	assert.Equal(t, res.Header().Get("Content-Type"), "application/json")
 
 	var jsonResponse map[string]string
-	err = json.DecodeJSON(res.Body.Bytes(), &jsonResponse)
+	err = json.Decode(res.Body.Bytes(), &jsonResponse)
 	assert.Nil(t, err)
 	assert.Equal(t, jsonResponse["message"], "success")
 }

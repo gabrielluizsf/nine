@@ -13,7 +13,7 @@ func TestJSONDecoder(t *testing.T) {
 		Age  int    `json:"age"`
 		City string `json:"city"`
 	}
-	err := DecodeJSON(b, &v)
+	err := Decode(b, &v)
 	assert.NoError(t, err)
 	assert.Equal(t, v.Name, "John")
 	assert.Equal(t, v.Age, 30)

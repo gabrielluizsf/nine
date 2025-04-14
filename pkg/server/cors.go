@@ -1,4 +1,4 @@
-package nine
+package server
 
 import (
 	"fmt"
@@ -15,8 +15,12 @@ type CorsConfig struct {
 	MaxAge           int64
 }
 
-func Cors(server *Server, options ...CorsConfig) HandlerWithContext {
-	config := defaultCorsConfig()
+type Server interface{
+	EnableCors(corsHandler HandlerWithContext)
+}
+
+func Cors(server Server, options ...CorsConfig) HandlerWithContext {
+	config := DefaultCorsConfig()
 
 	if len(options) > 0 {
 		config = options[0]
@@ -55,15 +59,14 @@ func Cors(server *Server, options ...CorsConfig) HandlerWithContext {
 		return nil
 	}
 
-	server.corsEnabled = true
-	server.corsHandler = HandlerWithContext(handler).Handler()
+	server.EnableCors(HandlerWithContext(handler))
 	return func(c *Context) error {
 		setCorsHeaders(c)
 		return nil
 	}
 }
 
-func defaultCorsConfig() CorsConfig {
+func DefaultCorsConfig() CorsConfig {
 	return CorsConfig{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},

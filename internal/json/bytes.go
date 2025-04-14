@@ -14,7 +14,7 @@ func Marshal(data any) ([]byte, error) {
 func String(JSON BytesReader) string {
 	var data any
 	b, _ := JSON.Bytes()
-	DecodeJSON(b, &data)
+	Decode(b, &data)
 	b, _ = json.MarshalIndent(data, "", "  ")
 	return string(b)
 }

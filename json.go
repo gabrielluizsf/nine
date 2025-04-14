@@ -98,7 +98,7 @@ func (j JSON) Buffer() (*bytes.Buffer, error) {
 //	 	   // Handle the error
 //		}
 func DecodeJSON[V any](b []byte, v *V) error {
-	return json.DecodeJSON(b, v)
+	return json.Decode(b, v)
 }
 
 // buffer converts a Buffer bytes to a *bytes.Buffer.

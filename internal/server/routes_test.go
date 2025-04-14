@@ -1,4 +1,4 @@
-package nine
+package server
 
 import (
 	"net/http"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/i9si-sistemas/assert"
+	public "github.com/i9si-sistemas/nine/pkg/server"
 )
 
 func TestRoutes(t *testing.T) {
@@ -21,15 +22,15 @@ func TestRoutes(t *testing.T) {
 	expected := Routes{{pattern: "/"}, {pattern: "/user"}, {pattern: "/user/{id}"}}
 	assert.Equal(t, r, expected, "should be equal")
 
-	server := NewServer(42)
+	server := New(42)
 
-	payload := JSON{
-		"user": JSON{
+	payload := JSON[JSON[any]]{
+		"user": JSON[any]{
 			"id":   1,
 			"name": "gabrielluizsf",
 		},
 	}
-	server.Get("/user", func(req *Request, res *Response) error {
+	server.Get("/user", func(req *public.Request, res *public.Response) error {
 		return res.JSON(payload)
 	})
 	req := httptest.NewRequest(http.MethodGet, "/user", nil)

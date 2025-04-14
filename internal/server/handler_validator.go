@@ -1,38 +1,39 @@
-package nine
+package server
 
 import (
 	"fmt"
 	"reflect"
+
+	public "github.com/i9si-sistemas/nine/pkg/server"
 )
 
 // validateHandler checks if the provided handler is either a Handler or HandlerWithContext
 // and returns a standardized Handler function
-func validateHandler(h any) (Handler, error) {
+func validateHandler(h any) (public.Handler, error) {
 	switch handler := h.(type) {
-	case Handler:
+	case public.Handler:
 		return handler, nil
-	case HandlerWithContext:
+	case public.HandlerWithContext:
 		return handler.Handler(), nil
-	case func(req *Request, res *Response) error:
-		return Handler(handler), nil
-	case func(c *Context) error:
-		return HandlerWithContext(handler).Handler(), nil
+	case func(req *public.Request, res *public.Response) error:
+		return public.Handler(handler), nil
+	case func(c *public.Context) error:
+		return public.HandlerWithContext(handler).Handler(), nil
 	default:
 		return nil, fmt.Errorf("invalid handler type: %v - must be either nine.Handler or nine.HandlerWithContext", reflect.TypeOf(h))
 	}
 }
 
 // registerHandlers validates and processes multiple handlers, returning the final handler and middlewares
-func registerHandlers(handlers ...any) (Handler, []Handler, error) {
+func registerHandlers(handlers ...any) (public.Handler, []public.Handler, error) {
 	if len(handlers) == 0 {
 		return nil, nil, ErrPutAHandler
 	}
 
-	var middlewares []Handler
+	var middlewares []public.Handler
 	lastIndex := len(handlers) - 1
 
-	// Validate middlewares
-	for i := 0; i < lastIndex; i++ {
+	for i := range lastIndex {
 		middleware, err := validateHandler(handlers[i])
 		if err != nil {
 			return nil, nil, fmt.Errorf("middleware at position %d: %w", i, err)
