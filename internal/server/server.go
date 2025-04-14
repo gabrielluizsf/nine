@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"compress/gzip"
 	"context"
 	"errors"
@@ -16,41 +15,23 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/i9si-sistemas/nine/internal/json"
+	public "github.com/i9si-sistemas/nine/pkg/server"
 )
-
-type Handler func(req *Request, res *Response) error
-
-type HandlerWithContext func(c *Context) error
-
-func (h HandlerWithContext) Handler() Handler {
-	return func(req *Request, res *Response) error {
-		c := NewContext(req.Context(), req.HTTP(), res.HTTP())
-		return h(c)
-	}
-}
-
-func (h Handler) Redirect(url string) Handler {
-	return func(req *Request, res *Response) error {
-		http.Redirect(res.res, req.req, url, http.StatusMovedPermanently)
-		return nil
-	}
-}
 
 type Server struct {
 	mux               *http.ServeMux
 	httpServer        *http.Server
 	routes            Routes
-	globalMiddlewares []Handler
+	globalMiddlewares []public.Handler
 	addr, port        string
 	corsEnabled       bool
-	corsHandler       Handler
+	corsHandler       public.Handler
 }
 
 type Router struct {
 	pattern      string
-	handler      Handler
-	middlewares  []Handler
+	handler      public.Handler
+	middlewares  []public.Handler
 	servingFiles bool
 }
 
@@ -63,6 +44,11 @@ func New[P int | string](port P) *Server {
 		port:       fmt.Sprint(port),
 		httpServer: new(http.Server),
 	}
+}
+
+func (s *Server) EnableCors(h public.HandlerWithContext) {
+	s.corsEnabled = true
+	s.corsHandler = h.Handler()
 }
 
 // ServeFiles serves static files from the specified directory for a given URL pattern.
@@ -86,10 +72,10 @@ func (s *Server) ServeFiles(pattern, path string) {
 	s.registerRoute(r)
 }
 
-func (s *Server) notFoundMiddleware(req *Request, res *Response) error {
+func (s *Server) notFoundMiddleware(req *public.Request, res *public.Response) error {
 	if exists := s.patternExists(req.Method(), req.Path()); !exists {
 		code := http.StatusNotFound
-		return &ServerError{
+		return &public.Error{
 			StatusCode: code,
 			Err:        errors.New(http.StatusText(code)),
 		}
@@ -405,7 +391,7 @@ func (s *Server) Use(middleware any) error {
 	return nil
 }
 
-func registerMiddlewares(handler http.Handler, middlewares ...Handler) http.Handler {
+func registerMiddlewares(handler http.Handler, middlewares ...public.Handler) http.Handler {
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		handler = httpMiddleware(middlewares[i], handler)
 	}
@@ -420,7 +406,7 @@ type TestServer struct {
 //
 //	server := nine.NewServer(8080)
 //	message := "Hello World"
-//	server.Get("/helloWorld", func(req *Request, res *Response) error {
+//	server.Get("/helloWorld", func(req *public.Request, res *Response) error {
 //		return res.Send([]byte(message))
 //	})
 //	testServer := server.Test()
@@ -434,7 +420,7 @@ func (s *Server) Test() *TestServer {
 //
 //		server := nine.NewServer(8080)
 //		message := "Hello World"
-//		server.Get("/helloWorld", func(req *Request, res *Response) error {
+//		server.Get("/helloWorld", func(req *public.Request, res *Response) error {
 //		   return res.Send([]byte(message))
 //		})
 //	    res := server.Test().Request(req)
@@ -448,64 +434,30 @@ func (t *TestServer) Request(r *http.Request) *httptest.ResponseRecorder {
 	return w
 }
 
-type ServerError struct {
-	StatusCode  int
-	ContentType string
-	Err         error
-}
-
-func (e *ServerError) Error() string {
-	return e.Err.Error()
-}
-
-func (e *ServerError) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if e.Err != nil {
-		w.Header().Set("Content-Type", e.ContentType)
-
-		if e.ContentType == "application/json" {
-			if e.StatusCode >= 100 {
-				w.WriteHeader(e.StatusCode)
-			}
-			b, err := JSON[any]{
-				"err": e.Err.Error(),
-			}.Bytes()
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Write(b)
-			return
-		}
-
-		http.Error(w, e.Err.Error(), e.StatusCode)
-		return
-	}
-}
-
-func httpMiddleware(m Handler, next http.Handler) http.Handler {
+func httpMiddleware(m public.Handler, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		req := Request{req: r}
-		res := Response{res: w}
+		req := public.NewRequest(r)
+		res := public.NewResponse(w)
 		if err := m(&req, &res); err != nil {
-			if srvErr, ok := err.(*ServerError); ok && srvErr != nil {
+			if srvErr, ok := err.(*public.Error); ok && srvErr != nil {
 				srvErr.ServeHTTP(w, r)
 				return
 			}
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if !res.sent {
+		if !res.Sent() {
 			next.ServeHTTP(w, r)
 		}
 	})
 }
 
-func httpHandler(h Handler, pattern string) http.Handler {
+func httpHandler(h public.Handler, pattern string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		req := Request{req: r, pattern: pattern}
-		res := Response{res: w}
+		req := public.NewRequest(r, pattern)
+		res := public.NewResponse(w)
 		if err := h(&req, &res); err != nil {
-			if srvErr, ok := err.(*ServerError); ok && srvErr != nil {
+			if srvErr, ok := err.(*public.Error); ok && srvErr != nil {
 				srvErr.ServeHTTP(w, r)
 				return
 			}
@@ -513,119 +465,6 @@ func httpHandler(h Handler, pattern string) http.Handler {
 			return
 		}
 	})
-}
-
-type Request struct {
-	req     *http.Request
-	pattern string
-}
-
-// Body decodes the JSON body of an HTTP request into a provided variable.
-//
-//	var body bodyType
-//	if err := nine.Body(req, &body); err != nil {
-//	    return res.Status(http.StatusBadRequest).JSON(nine.JSON{
-//			"message": "invalid body"
-//		})
-//	}
-func Body[T any](req *Request, v *T) error {
-	return json.Decode(req.Body().Bytes(), v)
-}
-
-// HTTP returns the HTTP request.
-//
-//	func handler(req *nine.Request, res *nine.Response) error {
-//			httpRequest := req.HTTP()
-//	}
-func (r *Request) HTTP() *http.Request {
-	return r.req
-}
-
-// Body returns the body of the HTTP request.
-//
-//	b := req.Body().Bytes()
-func (r *Request) Body() *bytes.Buffer {
-	b, _ := io.ReadAll(r.req.Body)
-	r.req.Body = io.NopCloser(bytes.NewReader(b))
-	return bytes.NewBuffer(b)
-}
-
-// Method returns the HTTP request method.
-//
-//	method := req.Method()
-func (r *Request) Method() string {
-	return r.req.Method
-}
-
-// Path returns the HTTP request url path
-//
-//	endpoint := req.Path()
-func (r *Request) Path() string {
-	return r.req.URL.Path
-}
-
-// Param returns the HTTP request path value
-//
-//	server.Get("/hello/{name}", func(req *nine.Request, res *nine.Response) error {
-//		name := req.Param("name")
-//		message := fmt.Sprintf("Hello %s", name)
-//		return res.Send([]byte(message))
-//	})
-func (r *Request) Param(name string) string {
-	return r.req.PathValue(name)
-}
-
-// Header retrieves the value of the specified HTTP header from the request.
-//
-//	contentType := req.Header("Content-Type")
-func (r *Request) Header(key string) string {
-	return r.req.Header.Get(key)
-}
-
-// Query fetches the value of the query parameter specified
-// by the key from the request URL.
-//
-//	query := req.Query("q")
-func (r *Request) Query(key string) string {
-	return r.req.URL.Query().Get(key)
-}
-
-// Context returns the context of the request,
-// which can be used to carry deadlines,
-// cancellation signals, and other request-scoped values.
-func (r *Request) Context() context.Context {
-	return r.req.Context()
-}
-
-type Response struct {
-	res        http.ResponseWriter
-	statusCode int
-	sent       bool
-}
-
-// HTTP returns the HTTP response.
-//
-//	func handler(req *nine.Request, res *nine.Response) error {
-//			httpResponse := res.HTTP()
-//	}
-func (r *Response) HTTP() http.ResponseWriter {
-	return r.res
-}
-
-func (r *Response) changeResponseWriter(res http.ResponseWriter) {
-	r.res = res
-}
-
-// Status sets the HTTP response status code
-// and returns the Response object for method chaining.
-func (r *Response) Status(statusCode int) *Response {
-	r.statusCode = statusCode
-	return r
-}
-
-// Sets a header in the HTTP response with the given key and value.
-func (r *Response) SetHeader(key, value string) {
-	r.res.Header().Set(key, value)
 }
 
 // Deprecated: ServeFiles has been deprecated in favor of using the nine.NewServer API.
@@ -635,9 +474,9 @@ func (r *Response) SetHeader(key, value string) {
 //	s.ServeFiles("/", "./static")
 //
 // ServeFiles returns a Handler that serves static files from the specified http.FileSystem.
-func ServeFiles(path http.FileSystem) Handler {
+func ServeFiles(path http.FileSystem) public.Handler {
 	staticFileSystem := http.FileServer(path)
-	return func(req *Request, res *Response) error {
+	return func(req *public.Request, res *public.Response) error {
 		filePath := req.Path()
 		if filePath[len(filePath)-1] == '/' {
 			filePath += "index.html"
@@ -664,7 +503,7 @@ func ServeFiles(path http.FileSystem) Handler {
 			res.HTTP().Header().Set("Content-Encoding", "gzip")
 			gz := gzip.NewWriter(res.HTTP())
 			defer gz.Close()
-			res.changeResponseWriter(&gzipResponseWriter{Writer: gz, ResponseWriter: res.HTTP()})
+			res.ChangeResponseWriter(&gzipResponseWriter{Writer: gz, ResponseWriter: res.HTTP()})
 		}
 
 		staticFileSystem.ServeHTTP(res.HTTP(), req.HTTP())
@@ -679,67 +518,4 @@ type gzipResponseWriter struct {
 
 func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
-}
-
-const defaultStatusCode = http.StatusOK
-
-// Writes the response with the provided byte slice as the body,
-// automatically detecting and setting the Content-Type based on the content.
-// It uses a defaultStatusCode if one isn't explicitly set.
-func (r *Response) Send(b []byte) error {
-	return r.write(func() error {
-		r.writeStatus()
-		if len(b) > 0 {
-			r.SetHeader("Content-Type", http.DetectContentType(b))
-			_, err := r.res.Write(b)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-}
-
-// JSON Sends a JSON response by encoding the provided data
-// into JSON format and setting the appropriate content-type and status code.
-func (r *Response) JSON(data any) error {
-	return r.write(func() error {
-		r.res.Header().Add("Content-Type", "application/json")
-		if r.invalidStatusCode() {
-			r.statusCode = defaultStatusCode
-		}
-		r.res.WriteHeader(r.statusCode)
-		return json.NewEncoder(r.res).Encode(data)
-	})
-}
-
-// SendStatus sends the HTTP response with the specified status code.
-func (r *Response) SendStatus(statusCode int) error {
-	return r.write(func() error {
-		r.statusCode = statusCode
-		return &ServerError{
-			StatusCode: r.statusCode,
-			Err:        errors.New(http.StatusText(r.statusCode)),
-		}
-	})
-}
-
-func (r *Response) write(fn func() error) error {
-	if !r.sent {
-		r.sent = true
-		return fn()
-	}
-	return nil
-}
-
-func (r *Response) writeStatus() {
-	if !r.invalidStatusCode() && r.statusCode != defaultStatusCode {
-		r.res.WriteHeader(r.statusCode)
-		return
-	}
-	r.res.WriteHeader(defaultStatusCode)
-}
-
-func (r *Response) invalidStatusCode() bool {
-	return r.statusCode < http.StatusContinue || r.statusCode > http.StatusNetworkAuthenticationRequired
 }

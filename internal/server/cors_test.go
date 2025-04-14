@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/i9si-sistemas/assert"
+	public "github.com/i9si-sistemas/nine/pkg/server"
 )
 
 func TestCors(t *testing.T) {
 	t.Run("Default Config", func(t *testing.T) {
 		server := setupCorsTestServer()
-		Cors(server)
+		public.Cors(server)
 		req := httptest.NewRequest(http.MethodOptions, "/user/create", nil)
 		res := server.Test().Request(req)
 
@@ -24,7 +25,7 @@ func TestCors(t *testing.T) {
 
 	t.Run("Custom Allowed Origins", func(t *testing.T) {
 		server := setupCorsTestServer()
-		Cors(server, CorsConfig{
+		public.Cors(server, public.CorsConfig{
 			AllowOrigins: []string{"https://example.com"},
 		})
 		req := httptest.NewRequest(http.MethodOptions, "/user/create", nil)
@@ -37,7 +38,7 @@ func TestCors(t *testing.T) {
 
 	t.Run("Blocked Origin", func(t *testing.T) {
 		server := setupCorsTestServer()
-		Cors(server, CorsConfig{
+		public.Cors(server, public.CorsConfig{
 			AllowOrigins: []string{"https://example.com"},
 		})
 		req := httptest.NewRequest(http.MethodOptions, "/user/create", nil)
@@ -50,7 +51,7 @@ func TestCors(t *testing.T) {
 
 	t.Run("Allow Credentials", func(t *testing.T) {
 		server := setupCorsTestServer()
-		Cors(server, CorsConfig{
+		public.Cors(server, public.CorsConfig{
 			AllowOrigins:     []string{"https://example.com"},
 			AllowCredentials: true,
 		})
@@ -63,11 +64,11 @@ func TestCors(t *testing.T) {
 
 	t.Run("Max Age", func(t *testing.T) {
 		server := New(5000)
-		corsMiddleware := Cors(server, CorsConfig{
+		corsMiddleware := public.Cors(server, public.CorsConfig{
 			MaxAge: 600,
 		})
 		server.Use(corsMiddleware)
-		server.Post("/user/create", func(c *Context) error {
+		server.Post("/user/create", func(c *public.Context) error {
 			return c.SendStatus(http.StatusCreated)
 		})
 		req := httptest.NewRequest(http.MethodOptions, "/user/create", nil)
@@ -78,7 +79,7 @@ func TestCors(t *testing.T) {
 
 	t.Run("Headers Defined", func(t *testing.T) {
 		server := setupCorsTestServer()
-		corsMiddleware := Cors(server)
+		corsMiddleware := public.Cors(server)
 		server.Use(corsMiddleware)
 		req := httptest.NewRequest(http.MethodPost, "/user/create", nil)
 		req.Header.Set("Content-Type", "application/json")
@@ -95,7 +96,7 @@ func TestCors(t *testing.T) {
 func setupCorsTestServer() *Server {
 	server := New("8080")
 	server.Route("/user", func(router *RouteGroup) {
-		router.Post("/create", func(c *Context) error {
+		router.Post("/create", func(c *public.Context) error {
 			return c.JSON(map[string]bool{"created": true})
 		})
 	})
@@ -103,7 +104,7 @@ func setupCorsTestServer() *Server {
 }
 
 func TestDefaultCorsConfig(t *testing.T) {
-	config := defaultCorsConfig()
+	config := public.DefaultCorsConfig()
 	tests := []struct {
 		name     string
 		got      interface{}

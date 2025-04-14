@@ -7,6 +7,7 @@ import (
 
 	"github.com/i9si-sistemas/assert"
 	"github.com/i9si-sistemas/nine/internal/json"
+	 public "github.com/i9si-sistemas/nine/pkg/server"
 )
 
 func TestRouteGroup(t *testing.T) {
@@ -18,9 +19,9 @@ func TestRouteGroup(t *testing.T) {
 	type JSON map[string]any
 	accounts := make(map[string]Account, 0)
 	testServer.Route("/account", func(router *RouteGroup) {
-		router.Post("/create", func(c *Context) error {
+		router.Post("/create", func(c *public.Context) error {
 			var body Account
-			if err := Body(c.Request, &body); err != nil {
+			if err := public.Body(c.Request, &body); err != nil {
 				return c.Status(http.StatusBadRequest).JSON(JSON{
 					"message": "invalid body",
 				})
@@ -33,7 +34,7 @@ func TestRouteGroup(t *testing.T) {
 			}
 			return c.JSON(response)
 		})
-		router.Get("/:name", func(c *Context) error {
+		router.Get("/:name", func(c *public.Context) error {
 			acc, ok := accounts[c.Param("name")]
 			if !ok {
 				return c.SendStatus(http.StatusNotFound)
@@ -66,9 +67,9 @@ func TestGroup(t *testing.T) {
 	}
 	accounts := make(JSON[Account], 0)
 	accountGroup := testServer.Group("/account")
-	accountGroup.Post("/create", func(c *Context) error {
+	accountGroup.Post("/create", func(c *public.Context) error {
 		var body Account
-		if err := Body(c.Request, &body); err != nil {
+		if err := public.Body(c.Request, &body); err != nil {
 			return c.Status(http.StatusBadRequest).JSON(JSON[string]{
 				"message": "invalid body",
 			})
@@ -82,7 +83,7 @@ func TestGroup(t *testing.T) {
 		return c.JSON(response)
 	})
 	profileGroup := accountGroup.Group("/profile")
-	profileGroup.Get("/:name", func(c *Context) error {
+	profileGroup.Get("/:name", func(c *public.Context) error {
 		acc, ok := accounts[c.Param("name")]
 		if !ok {
 			return c.SendStatus(http.StatusNotFound)
@@ -92,7 +93,7 @@ func TestGroup(t *testing.T) {
 		})
 	})
 	profileGroup.Route("/photo", func(router *RouteGroup) {
-		router.Get("/:name", func(c *Context) error {
+		router.Get("/:name", func(c *public.Context) error {
 			return c.Send([]byte(c.Param("name")))
 		})
 	})

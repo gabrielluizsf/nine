@@ -25,15 +25,12 @@ func NewContext(
 	req *http.Request,
 	res http.ResponseWriter,
 ) *Context {
+	request := NewRequest(req)
 	return &Context{
 		ctx:      ctx,
-		Request:  &Request{req: req},
+		Request:  &request,
 		Response: &Response{res: res},
 	}
-}
-
-func (c *Context) pathRegistred() string {
-	return c.Request.pattern
 }
 
 func (c *Context) ParamsParser(v any) error {
@@ -279,6 +276,10 @@ func (c *Context) JSON(data any) error {
 		return err
 	}
 	return c.Response.JSON(payload)
+}
+
+func (c *Context) pathRegistred() string {
+	return c.Request.PathRegistred()
 }
 
 func parseForm(form any, v any) error {

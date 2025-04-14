@@ -2,12 +2,14 @@ package server
 
 import (
 	"strings"
+
+	public "github.com/i9si-sistemas/nine/pkg/server"
 )
 
 // Group creates a new route group with a base path and optional middleware.
 // All routes registered within this group will have the base path prepended
 // and the middleware applied.
-func (s *Server) Group(basePath string, middlewares ...Handler) *RouteGroup {
+func (s *Server) Group(basePath string, middlewares ...public.Handler) *RouteGroup {
 	return &RouteGroup{
 		server:      s,
 		basePath:    basePath,
@@ -20,7 +22,7 @@ func (s *Server) Group(basePath string, middlewares ...Handler) *RouteGroup {
 type RouteGroup struct {
 	server      *Server
 	basePath    string
-	middlewares []Handler
+	middlewares []public.Handler
 }
 
 // Route accepts a base path and a function to define routes within the group.
@@ -32,7 +34,7 @@ func (s *Server) Route(basePath string, fn func(router *RouteGroup)) {
 }
 
 // Group creates a new route group with a base path and optional middlewares.
-func (g *RouteGroup) Group(basePath string, middlewares ...Handler) *RouteGroup {
+func (g *RouteGroup) Group(basePath string, middlewares ...public.Handler) *RouteGroup {
 	return &RouteGroup{
 		server:      g.server,
 		basePath:    g.basePath + basePath,
