@@ -15,11 +15,8 @@ type CorsConfig struct {
 	MaxAge           int64
 }
 
-type Server interface{
-	EnableCors(corsHandler HandlerWithContext)
-}
 
-func Cors(server Server, options ...CorsConfig) HandlerWithContext {
+func Cors(server *Server, options ...CorsConfig) HandlerWithContext {
 	config := DefaultCorsConfig()
 
 	if len(options) > 0 {

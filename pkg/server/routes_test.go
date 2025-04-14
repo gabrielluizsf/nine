@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/i9si-sistemas/assert"
-	public "github.com/i9si-sistemas/nine/pkg/server"
 )
 
 func TestRoutes(t *testing.T) {
@@ -24,13 +23,13 @@ func TestRoutes(t *testing.T) {
 
 	server := New(42)
 
-	payload := JSON[JSON[any]]{
-		"user": JSON[any]{
+	payload := JSON{
+		"user": JSON{
 			"id":   1,
 			"name": "gabrielluizsf",
 		},
 	}
-	server.Get("/user", func(req *public.Request, res *public.Response) error {
+	server.Get("/user", func(req *Request, res *Response) error {
 		return res.JSON(payload)
 	})
 	req := httptest.NewRequest(http.MethodGet, "/user", nil)
