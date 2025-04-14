@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	public "github.com/i9si-sistemas/nine/pkg/client"
 )
 
 func TestRequest(t *testing.T) {
@@ -17,9 +19,9 @@ func TestRequest(t *testing.T) {
 
 	type testCase struct {
 		method, url, expectedBody string
-		headers                   []Header
+		headers                   []public.Header
 		body                      io.Reader
-		queryParams               []QueryParam
+		queryParams               []public.QueryParam
 	}
 
 	tests := []testCase{
@@ -27,18 +29,18 @@ func TestRequest(t *testing.T) {
 			method:       http.MethodGet,
 			url:          server.URL + "/get",
 			expectedBody: "GET request",
-			headers:      []Header{{Data: Data{Key: "X-Custom-Header", Value: "value"}}},
+			headers:      []public.Header{{Data: public.Data{Key: "X-Custom-Header", Value: "value"}}},
 			body:         nil,
-			queryParams: []QueryParam{
-				{Data: Data{Key: "query", Value: "param"}},
-				{Data: Data{Key: "search", Value: "gopher"}},
+			queryParams: []public.QueryParam{
+				{Data: public.Data{Key: "query", Value: "param"}},
+				{Data: public.Data{Key: "search", Value: "gopher"}},
 			},
 		},
 		{
 			method:       http.MethodPost,
 			url:          server.URL + "/post",
 			expectedBody: "POST request",
-			headers:      []Header{{Data: Data{Key: "X-Custom-Header", Value: "value"}}},
+			headers:      []public.Header{{Data: public.Data{Key: "X-Custom-Header", Value: "value"}}},
 			body:         bytes.NewBufferString("test body"),
 			queryParams:  nil,
 		},
@@ -46,7 +48,7 @@ func TestRequest(t *testing.T) {
 			method:       http.MethodPut,
 			url:          server.URL + "/put",
 			expectedBody: "PUT request",
-			headers:      []Header{{Data: Data{Key: "X-Custom-Header", Value: "value"}}},
+			headers:      []public.Header{{Data: public.Data{Key: "X-Custom-Header", Value: "value"}}},
 			body:         nil,
 			queryParams:  nil,
 		},
@@ -54,9 +56,9 @@ func TestRequest(t *testing.T) {
 			method:       http.MethodPatch,
 			url:          server.URL + "/patch",
 			expectedBody: "PATCH request",
-			headers: []Header{
-				{Data: Data{Key: "X-Custom-Header", Value: "value"}},
-				{Data: Data{Key: "X-Request-Id", Value: 101209320192}},
+			headers: []public.Header{
+				{Data: public.Data{Key: "X-Custom-Header", Value: "value"}},
+				{Data: public.Data{Key: "X-Request-Id", Value: 101209320192}},
 			},
 			body:        nil,
 			queryParams: nil,
@@ -65,7 +67,7 @@ func TestRequest(t *testing.T) {
 			method:       http.MethodDelete,
 			url:          server.URL + "/delete",
 			expectedBody: "DELETE request",
-			headers:      []Header{{Data: Data{Key: "X-Custom-Header", Value: "value"}}},
+			headers:      []public.Header{{Data: public.Data{Key: "X-Custom-Header", Value: "value"}}},
 			body:         nil,
 			queryParams:  nil,
 		},
@@ -98,7 +100,7 @@ func TestRequest(t *testing.T) {
 			err      error
 		)
 
-		opts := &Options{
+		opts := &public.Options{
 			Headers:     test.headers,
 			Body:        test.body,
 			QueryParams: test.queryParams,

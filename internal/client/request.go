@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	public "github.com/i9si-sistemas/nine/pkg/client"
 )
 
 func newRequest(ctx context.Context, method, url string, body io.Reader) (*http.Request, error) {
@@ -22,18 +23,18 @@ func newRequest(ctx context.Context, method, url string, body io.Reader) (*http.
 // Returns:
 //   - *http.Response: the HTTP response received from the server.
 //   - error: an error if the request preparation or execution failed, or nil if it was successful.
-func (c *client) executeRequest(method, url string, options *Options) (*http.Response, error) {
+func (c *client) executeRequest(method, url string, options *public.Options) (*http.Response, error) {
 	var (
 		headers     = options.Headers
 		body        = options.Body
 		queryParams = options.QueryParams
 	)
-	url = setQueryParams(queryParams, url)
+	url = public.SetQueryParams(queryParams, url)
 
 	req, err := newRequest(c.ctx, method, url, body)
 	if err != nil {
 		return nil, err
 	}
-	setHeaders(req, headers)
+	public.SetHeaders(req, headers)
 	return c.Response(req)
 }

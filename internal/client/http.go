@@ -3,6 +3,8 @@ package client
 import (
 	"context"
 	"net/http"
+
+	public "github.com/i9si-sistemas/nine/pkg/client"
 )
 
 type client struct {
@@ -20,27 +22,27 @@ func New(ctx context.Context) *client {
 }
 
 // Get sends an HTTP GET request to the specified URL with the given options.
-func (c *client) Get(url string, options *Options) (*http.Response, error) {
+func (c *client) Get(url string, options *public.Options) (*http.Response, error) {
 	return c.executeRequest(http.MethodGet, url, options)
 }
 
 // Post sends an HTTP POST request to the specified URL with the given options.
-func (c *client) Post(url string, options *Options) (*http.Response, error) {
+func (c *client) Post(url string, options *public.Options) (*http.Response, error) {
 	return c.executeRequest(http.MethodPost, url, options)
 }
 
 // Put sends an HTTP PUT request to the specified URL with the given options.
-func (c *client) Put(url string, options *Options) (*http.Response, error) {
+func (c *client) Put(url string, options *public.Options) (*http.Response, error) {
 	return c.executeRequest(http.MethodPut, url, options)
 }
 
 // Patch sends an HTTP PATCH request to the specified URL with the given options.
-func (c *client) Patch(url string, options *Options) (*http.Response, error) {
+func (c *client) Patch(url string, options *public.Options) (*http.Response, error) {
 	return c.executeRequest(http.MethodPatch, url, options)
 }
 
 // Delete sends an HTTP DELETE request to the specified URL with the given options.
-func (c *client) Delete(url string, options *Options) (*http.Response, error) {
+func (c *client) Delete(url string, options *public.Options) (*http.Response, error) {
 	return c.executeRequest(http.MethodDelete, url, options)
 }
 

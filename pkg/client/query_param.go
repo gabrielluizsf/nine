@@ -11,9 +11,9 @@ type QueryParam struct {
 	Data // Embeds the Data struct to represent the key-value pair for the query parameter.
 }
 
-// setQueryParams appends query parameters to the given URL.
+// SetQueryParams appends query parameters to the given URL.
 // It returns the URL with the query parameters attached.
-func setQueryParams(queryParams []QueryParam, url string) string {
+func SetQueryParams(queryParams []QueryParam, url string) string {
 	if len(queryParams) == 0 {
 		return url
 	}

@@ -10,7 +10,7 @@ type Header struct {
 	Data // Embeds the Data struct to represent the key-value pair for the header.
 }
 
-// setHeaders adds or replaces headers in an HTTP request.
+// SetHeaders adds or replaces headers in an HTTP request.
 // For each header in the provided list, the function converts the value
 // to a string and sets it in the corresponding request field.
 //
@@ -21,7 +21,7 @@ type Header struct {
 //
 // Note: If the header value is already a string, additional conversion
 // is avoided to improve performance.
-func setHeaders(req *http.Request, headers []Header) {
+func SetHeaders(req *http.Request, headers []Header) {
 	for _, header := range headers {
 		var value string
 		if v, ok := header.Value.(string); ok {
