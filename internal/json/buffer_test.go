@@ -8,10 +8,12 @@ import (
 	"github.com/i9si-sistemas/assert"
 )
 
-type testBuffer struct{}
+type testBuffer struct{
+	bytes []byte
+}
 
 func (t testBuffer) Bytes() ([]byte, error) {
-	return []byte("test"), nil
+	return t.bytes, nil
 }
 
 func (t testBuffer) Buffer() (*bytes.Buffer, error) {
@@ -19,7 +21,9 @@ func (t testBuffer) Buffer() (*bytes.Buffer, error) {
 }
 
 func TestBuffer(t *testing.T) {
-	tbuf := testBuffer{}
+	tbuf := testBuffer{
+		bytes: []byte("{\"message\": \"test\"}"),
+	}
 	b, err := RWBuffer(tbuf)
 	assert.NoError(t, err)
 	expectedBytes, err := tbuf.Bytes()
