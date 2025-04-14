@@ -3,7 +3,6 @@ package nine
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -12,6 +11,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/i9si-sistemas/nine/internal/json"
 
 	"github.com/i9si-sistemas/assert"
 )
@@ -45,7 +46,7 @@ func TestBodyParser(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, parsedBody["name"], "test")
-	assert.Equal(t, parsedBody["age"], float64(30)) // json.Unmarshal converts numbers to float64 by default
+	assert.Equal(t, parsedBody["age"], float64(30))
 }
 
 func TestQueryParser(t *testing.T) {
@@ -116,7 +117,7 @@ func TestSend(t *testing.T) {
 
 func TestParamsParser(t *testing.T) {
 	c := context.Background()
-	req := httptest.NewRequest(http.MethodGet, "/user/123/profile", nil) 
+	req := httptest.NewRequest(http.MethodGet, "/user/123/profile", nil)
 	res := httptest.NewRecorder()
 	context := NewContext(c, req, res)
 
@@ -163,7 +164,7 @@ func TestContextJSON(t *testing.T) {
 	assert.Equal(t, res.Header().Get("Content-Type"), "application/json")
 
 	var jsonResponse map[string]string
-	err = json.Unmarshal(res.Body.Bytes(), &jsonResponse)
+	err = json.DecodeJSON(res.Body.Bytes(), &jsonResponse)
 	assert.Nil(t, err)
 	assert.Equal(t, jsonResponse["message"], "success")
 }
