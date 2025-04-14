@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +15,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/i9si-sistemas/nine/internal/json"
 )
 
 type Handler func(req *Request, res *Response) error

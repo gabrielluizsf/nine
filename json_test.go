@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"testing"
+
+	"github.com/i9si-sistemas/nine/internal/json"
 )
 
 func TestJSON(t *testing.T) {
@@ -20,7 +22,7 @@ func TestGenericJSON(t *testing.T) {
 	validateBytes(t, json, username)
 }
 
-func validateBytes(t *testing.T, json Buffer, username string) {
+func validateBytes(t *testing.T, json json.Buffer, username string) {
 	b, err := json.Bytes()
 	if err != nil {
 		t.Fatal(err)
@@ -64,7 +66,7 @@ func TestBuffer(t *testing.T) {
 	validateBuffer(t, json)
 }
 
-func validateBuffer(t *testing.T, json Buffer) {
+func validateBuffer(t *testing.T, json json.Buffer) {
 	if _, err := buffer(json); err == nil {
 		t.Fatal("expected error, got nil")
 	}

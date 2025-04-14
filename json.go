@@ -2,14 +2,9 @@ package nine
 
 import (
 	"bytes"
-	"encoding/json"
-)
 
-// Buffer is an interface that defines a method for converting data into a byte slice.
-type Buffer interface {
-	Bytes() ([]byte, error)
-	Buffer() (*bytes.Buffer, error)
-}
+	"github.com/i9si-sistemas/nine/internal/json"
+)
 
 // GenericJSON is a generic map type that allows you to create a map with keys of type K
 // and values of type V. This can be used to represent JSON objects where the key and value
@@ -38,22 +33,7 @@ type GenericJSON[K comparable, V any] map[K]V
 
 // String returns a string representation of the JSON data.
 func (g GenericJSON[K, V]) String() string {
-	return jsonString(g)
-}
-
-// buffer converts a Buffer bytes to a *bytes.Buffer.
-// Returns the *bytes.Buffer containing the data and an error if any.
-func buffer(buf Buffer) (*bytes.Buffer, error) {
-	b, err := buf.Bytes()
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(b), nil
-}
-
-// jsonBytes encodes any data structure into JSON and returns the byte slice and an error if any.
-func jsonBytes[T any](data T) ([]byte, error) {
-	return json.Marshal(data)
+	return json.String(g)
 }
 
 // Bytes converts the GenericJSON into a byte slice using JSON encoding.
@@ -78,13 +58,7 @@ type JSON map[string]any
 
 // String returns a string representation of the JSON data.
 func (j JSON) String() string {
-	return jsonString(j)
-}
-
-// jsonString returns a string representation of the JSON data.
-func jsonString(JSON Buffer) string {
-	b, _ := json.MarshalIndent(JSON, "", "  ")
-	return string(b)
+	return json.String(j)
 }
 
 // Bytes converts the JSON into a byte slice using JSON encoding.
@@ -124,5 +98,16 @@ func (j JSON) Buffer() (*bytes.Buffer, error) {
 //	 	   // Handle the error
 //		}
 func DecodeJSON[V any](b []byte, v *V) error {
-	return json.Unmarshal(b, v)
+	return json.DecodeJSON(b, v)
+}
+
+// buffer converts a Buffer bytes to a *bytes.Buffer.
+// Returns the *bytes.Buffer containing the data and an error if any.
+func buffer(buf json.Buffer) (*bytes.Buffer, error) {
+	return json.RWBuffer(buf)
+}
+
+// jsonBytes encodes any data structure into JSON and returns the byte slice and an error if any.
+func jsonBytes[T any](data T) ([]byte, error) {
+	return json.Marshal(data)
 }

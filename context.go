@@ -3,7 +3,6 @@ package nine
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -11,6 +10,8 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+
+	"github.com/i9si-sistemas/nine/internal/json"
 )
 
 type Context struct {
@@ -191,7 +192,7 @@ func (c *Context) QueryParser(v any) error {
 		return err
 	}
 
-	return json.Unmarshal(data, v)
+	return json.DecodeJSON(data, v)
 }
 
 func (c *Context) ReqHeaderParser(v any) error {
@@ -285,7 +286,7 @@ func parseForm(form any, v any) error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(data, v)
+	return json.DecodeJSON(data, v)
 }
 
 func splitComma(s string) []string {
