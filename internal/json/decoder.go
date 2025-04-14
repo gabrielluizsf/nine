@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-func DecodeJSON(b []byte, v any) error {
+func Decode(b []byte, v any) error {
 	return json.Unmarshal(b, v)
 }
 
