@@ -7,7 +7,7 @@ import (
 // Group creates a new route group with a base path and optional middleware.
 // All routes registered within this group will have the base path prepended
 // and the middleware applied.
-func (s *Server) Group(basePath string, middlewares ...Handler) *RouteGroup {
+func (s *Server) Group(basePath string, middlewares ...any) *RouteGroup {
 	return &RouteGroup{
 		server:      s,
 		basePath:    basePath,
@@ -20,7 +20,7 @@ func (s *Server) Group(basePath string, middlewares ...Handler) *RouteGroup {
 type RouteGroup struct {
 	server      *Server
 	basePath    string
-	middlewares []Handler
+	middlewares []any
 }
 
 // Route accepts a base path and a function to define routes within the group.
@@ -32,7 +32,7 @@ func (s *Server) Route(basePath string, fn func(router *RouteGroup)) {
 }
 
 // Group creates a new route group with a base path and optional middlewares.
-func (g *RouteGroup) Group(basePath string, middlewares ...Handler) *RouteGroup {
+func (g *RouteGroup) Group(basePath string, middlewares ...any) *RouteGroup {
 	return &RouteGroup{
 		server:      g.server,
 		basePath:    g.basePath + basePath,
@@ -48,26 +48,31 @@ func (g *RouteGroup) Route(basePath string, fn func(router *RouteGroup)) {
 
 // Get registers a GET route within the group
 func (g *RouteGroup) Get(path string, handlers ...any) error {
+	handlers = g.routeHandlers(handlers...)
 	return g.server.Get(g.fullPath(path), handlers...)
 }
 
 // Post registers a POST route within the group
 func (g *RouteGroup) Post(path string, handlers ...any) error {
+	handlers = g.routeHandlers(handlers...)
 	return g.server.Post(g.fullPath(path), handlers...)
 }
 
 // Put registers a PUT route within the group
 func (g *RouteGroup) Put(path string, handlers ...any) error {
+	handlers = g.routeHandlers(handlers...)
 	return g.server.Put(g.fullPath(path), handlers...)
 }
 
 // Patch registers a PATCH route within the group
 func (g *RouteGroup) Patch(path string, handlers ...any) error {
+	handlers = g.routeHandlers(handlers...)
 	return g.server.Patch(g.fullPath(path), handlers...)
 }
 
 // Delete registers a DELETE route within the group
 func (g *RouteGroup) Delete(path string, handlers ...any) error {
+	handlers = g.routeHandlers(handlers...)
 	return g.server.Delete(g.fullPath(path), handlers...)
 }
 
@@ -82,4 +87,9 @@ func (g *RouteGroup) fullPath(path string) string {
 	}
 	path = strings.TrimPrefix(path, "/")
 	return fullPath + path
+}
+
+// routeHandlers combines the group's middlewares with the provided handlers
+func (g *RouteGroup) routeHandlers(handlers ...any) []any {
+	return append(g.middlewares, handlers...)
 }
