@@ -33,7 +33,7 @@ type Router struct {
 	servingFiles bool
 }
 
-// NewServer creates a new `Server` instance bound to the specified port.
+// New creates a new `Server` instance bound to the specified port.
 // It accepts both integer and string types for the port.
 func New[P int | string](port P) *Server {
 	return &Server{
