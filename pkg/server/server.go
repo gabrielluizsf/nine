@@ -396,8 +396,15 @@ func registerMiddlewares(handler http.Handler, middlewares ...Handler) http.Hand
 	return handler
 }
 
+// HandlerTester is an interface that represents a handler that can be tested.
+type HandlerTester interface{
+	// Handler returns the handler to be tested.
+	Handler() http.Handler
+}
+
+// TestServer is a wrapper around a Server that provides a Test method for testing.
 type TestServer struct {
-	*Server
+	HandlerTester
 }
 
 // Test configures the Server for testing.
@@ -410,7 +417,7 @@ type TestServer struct {
 //	testServer := server.Test()
 func (s *Server) Test() *TestServer {
 	s.mux = http.NewServeMux()
-	return &TestServer{Server: s}
+	return &TestServer{HandlerTester: s}
 }
 
 // Request sends a simulated HTTP request to the server and captures
