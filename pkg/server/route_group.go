@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"strings"
 )
 
@@ -8,19 +9,40 @@ import (
 // All routes registered within this group will have the base path prepended
 // and the middleware applied.
 func (s *Server) Group(basePath string, middlewares ...any) *RouteGroup {
-	return &RouteGroup{
-		server:      s,
-		basePath:    basePath,
-		middlewares: middlewares,
-	}
+	return NewRouteGroup(s, basePath, middlewares...)
+}
+
+// RouteManager defines the interface for managing routes and groups.
+type RouteManager interface {
+	Use(middlewares any) error
+	Get(string, ...any) error
+	Post(string, ...any) error
+	Put(string, ...any) error
+	Patch(string, ...any) error
+	Delete(string, ...any) error
+	Route(string, func(*RouteGroup))
+	Group(string, ...any) *RouteGroup
+	ServeFiles(string, string)
+	Test() *TestServer
+	Listen() error
+	Shutdown(ctx context.Context) error
 }
 
 // RouteGroup represents a group of routes that share a common base path
 // and middleware stack
 type RouteGroup struct {
-	server      *Server
+	server      RouteManager
 	basePath    string
 	middlewares []any
+}
+
+// NewRouteGroup creates a new RouteGroup instance.
+func NewRouteGroup(server RouteManager, basePath string, middlewares ...any) *RouteGroup {
+	return &RouteGroup{
+		server:      server,
+		basePath:    basePath,
+		middlewares: middlewares,
+	}
 }
 
 // Route accepts a base path and a function to define routes within the group.
@@ -33,11 +55,7 @@ func (s *Server) Route(basePath string, fn func(router *RouteGroup)) {
 
 // Group creates a new route group with a base path and optional middlewares.
 func (g *RouteGroup) Group(basePath string, middlewares ...any) *RouteGroup {
-	return &RouteGroup{
-		server:      g.server,
-		basePath:    g.basePath + basePath,
-		middlewares: append(g.middlewares, middlewares...),
-	}
+	return NewRouteGroup(g.server, g.basePath+basePath, append(g.middlewares, middlewares...)...)
 }
 
 // Route accepts a base path and a function to define routes within the group.
