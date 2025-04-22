@@ -55,7 +55,7 @@ func (s *Server) Route(basePath string, fn func(router *RouteGroup)) {
 
 // Group creates a new route group with a base path and optional middlewares.
 func (g *RouteGroup) Group(basePath string, middlewares ...any) *RouteGroup {
-	return NewRouteGroup(g.server, g.basePath+basePath, append(g.middlewares, middlewares...)...)
+	return NewRouteGroup(g.server, g.fullPath(basePath), append(g.middlewares, middlewares...)...)
 }
 
 // Route accepts a base path and a function to define routes within the group.
