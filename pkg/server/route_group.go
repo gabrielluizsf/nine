@@ -26,7 +26,6 @@ type RouteManager interface {
 	Test() *TestServer
 	Listen() error
 	Shutdown(ctx context.Context) error
-	Port() string
 }
 
 // RouteGroup represents a group of routes that share a common base path
