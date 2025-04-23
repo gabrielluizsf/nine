@@ -123,6 +123,27 @@ func DecodeJSONReader[V any](r io.Reader, v *V) error {
 	return json.Decode(b, v)
 }
 
+// NewJSON creates a new JSON object from a byte slice containing JSON data.
+// It returns the JSON object
+// and an error if any occurs during decoding.
+//
+// Example:
+//
+//		jsonBytes := []byte(`{"name": "John", "age": 30}`)
+//
+//		jsonObj, err := NewJSON(jsonBytes)
+//		if err != nil {
+//			// Handle the error
+//		}
+//		// Use the JSON object
+func NewJSON(data []byte) (JSON, error) {
+	var j JSON
+	if err := json.Decode(data, &j); err != nil {
+		return nil, err
+	}
+	return j, nil
+}
+
 // buffer converts a Buffer bytes to a *bytes.Buffer.
 // Returns the *bytes.Buffer containing the data and an error if any.
 func buffer(buf json.Buffer) (*bytes.Buffer, error) {
