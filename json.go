@@ -2,6 +2,7 @@ package nine
 
 import (
 	"bytes"
+	"io"
 
 	"github.com/i9si-sistemas/nine/internal/json"
 )
@@ -98,6 +99,27 @@ func (j JSON) Buffer() (*bytes.Buffer, error) {
 //	 	   // Handle the error
 //		}
 func DecodeJSON[V any](b []byte, v *V) error {
+	return json.Decode(b, v)
+}
+
+// DecodeJSONReader decodes a JSON-encoded byte slice from an io.Reader into a value of type V.
+// The destination value must be a pointer for the function
+// to populate the decoded value.
+//
+// Example:
+//
+//		var user struct {
+//			Username string `json:"username"`
+//		}
+//		jsonReader := bytes.NewReader(jsonBytes)
+//		if err := DecodeJSONReader(jsonReader, &user); err != nil {
+//			// Handle the error
+//		}
+func DecodeJSONReader[V any](r io.Reader, v *V) error {
+	b, err :=  io.ReadAll(r); 
+	if err != nil {
+		return err
+	}
 	return json.Decode(b, v)
 }
 
