@@ -14,6 +14,9 @@ import (
 func TestNineClient(t *testing.T) {
 	client := nine.New(context.Background())
 	res, err := client.Get("https://httpbin.org/get", new(i9.Options))
+	if res.StatusCode >= 400 {
+		t.Skip("httpbin.org is not available")
+	}
 	assert.NoError(t, err)
 	defer res.Body.Close()
 
