@@ -2,39 +2,27 @@ package e2e_test
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/i9si-sistemas/assert"
 	"github.com/i9si-sistemas/nine"
-	i9Client "github.com/i9si-sistemas/nine/pkg/client"
-	i9Server "github.com/i9si-sistemas/nine/pkg/server"
+	i9 "github.com/i9si-sistemas/nine/pkg/client"
 )
 
 func TestNineClient(t *testing.T) {
-	server := nine.NewServer("")
-	server.Get("/", func(c *i9Server.Context) error {
-		return c.Send([]byte("Hello World!"))
-	})
-
-	go func() {
-		assert.NoError(t, server.Listen())
-	}()
-
-	time.Sleep(5 * time.Millisecond)
-
 	client := nine.New(context.Background())
-	url := fmt.Sprintf("http://localhost:%s", server.Port())
-
-	res, err := client.Get(url, &i9Client.Options{})
+	res, err := client.Get("https://httpbin.org/get", new(i9.Options))
 	assert.NoError(t, err)
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	var payload nine.JSON
+	b, err := io.ReadAll(res.Body)
 	assert.NoError(t, err)
-	assert.Equal(t, string(body), "Hello World!")
-	assert.Equal(t, res.StatusCode, http.StatusOK)
+	err = nine.DecodeJSON(b, &payload)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	assert.Equal(t, payload["url"], "https://httpbin.org/get")
 }
