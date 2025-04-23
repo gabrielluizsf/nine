@@ -73,6 +73,13 @@ func TestDecodeJSONReader(t *testing.T) {
 	assert.Equal(t, user.Username, "gopher")
 }
 
+func TestNewJSON(t *testing.T) {
+	jsonBytes, _ := JSON{"username": "gopher"}.Bytes()
+	json, err := NewJSON(jsonBytes)
+	assert.NoError(t, err)
+	assert.Equal(t, json.String(), "{\n  \"username\": \"gopher\"\n}")
+}
+
 func TestBuffer(t *testing.T) {
 	json := fakeJSON{}
 	validateBuffer(t, json)
