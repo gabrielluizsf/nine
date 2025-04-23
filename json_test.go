@@ -7,6 +7,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/i9si-sistemas/assert"
 	"github.com/i9si-sistemas/nine/internal/json"
 )
 
@@ -59,6 +60,17 @@ func validateBytes(t *testing.T, json json.Buffer, username string) {
 	if _, ok := any(buf).(io.Writer); !ok {
 		t.Fatal("buf does not implement io.Writer")
 	}
+}
+
+func TestDecodeJSONReader(t *testing.T) {
+	b , _:= JSON{"username": "gopher"}.Bytes()
+	jr := bytes.NewReader(b)
+	var user struct {
+		Username string `json:"username"`
+	}
+	err := DecodeJSONReader(jr, &user)
+	assert.NoError(t, err)
+	assert.Equal(t, user.Username, "gopher")
 }
 
 func TestBuffer(t *testing.T) {
