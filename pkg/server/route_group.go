@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"strings"
 )
 
@@ -10,22 +9,6 @@ import (
 // and the middleware applied.
 func (s *Server) Group(basePath string, middlewares ...any) *RouteGroup {
 	return NewRouteGroup(s, basePath, middlewares...)
-}
-
-// RouteManager defines the interface for managing routes and groups.
-type RouteManager interface {
-	Use(middlewares any) error
-	Get(string, ...any) error
-	Post(string, ...any) error
-	Put(string, ...any) error
-	Patch(string, ...any) error
-	Delete(string, ...any) error
-	Route(string, func(*RouteGroup))
-	Group(string, ...any) *RouteGroup
-	ServeFiles(string, string)
-	Test() *TestServer
-	Listen() error
-	Shutdown(ctx context.Context) error
 }
 
 // RouteGroup represents a group of routes that share a common base path
