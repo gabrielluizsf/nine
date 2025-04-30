@@ -94,7 +94,7 @@ func TestCors(t *testing.T) {
 
 func setupCorsTestServer() *Server {
 	server := New("8080")
-	server.Route("/user", func(router *RouteGroup) {
+	server.Route("/user", func(router RouteManager) {
 		router.Post("/create", func(c *Context) error {
 			return c.JSON(map[string]bool{"created": true})
 		})
@@ -106,8 +106,8 @@ func TestDefaultCorsConfig(t *testing.T) {
 	config := DefaultCorsConfig()
 	tests := []struct {
 		name     string
-		got      interface{}
-		expected interface{}
+		got      any
+		expected any
 	}{
 		{
 			name:     "AllowOrigins",

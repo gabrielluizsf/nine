@@ -76,7 +76,7 @@ type RouteManager interface {
 	//		return c.Send([]byte("Hello World"))
 	//	})
 	//})
-	Route(endpoint string, groupFn func(*RouteGroup))
+	Route(endpoint string, groupFn func(RouteManager))
 	// Group registers a route group with the specified pattern and middlewares.
 	// Example:
 	//
@@ -84,16 +84,21 @@ type RouteManager interface {
 	// 	apiGroup.Get("/", func(c *i9.Context) error {
 	//	      return c.Send([]byte("Hello World"))
 	// 	})
-	Group(endpoint string, middlewares ...any) *RouteGroup
+	Group(endpoint string, middlewares ...any) RouteManager
+}
+
+// ServerManager defines the interface for managing servers.
+type ServerManager interface {
+	RouteManager
 	// ServeFiles serves static files from the specified directory at the specified endpoint.
 	// Example:
 	//
 	//server.ServeFiles("/static", "./static")
 	ServeFiles(endpoint string, dirPath string)
-	// Test returns a test server for testing purposes.
-	Test() *TestServer
 	// Listen starts the HTTP server, listening on the configured address, and binds all registered routes and middleware.
 	Listen() error
 	// Shutdown gracefully shuts down the server without interrupting any active connections.
 	Shutdown(ctx context.Context) error
+	// Test returns a test server for testing purposes.
+	Test() *TestServer
 }

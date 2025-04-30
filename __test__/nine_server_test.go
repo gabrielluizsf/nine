@@ -17,7 +17,7 @@ func TestNineServer(t *testing.T) {
 			"message": "hello world",
 		})
 	})
-	server.Route("/user", func(router *i9.RouteGroup) {
+	server.Route("/user", func(router i9.RouteManager) {
 		assert.NoError(t, router.Get("/", func(c *i9.Context) error {
 			return c.JSON(i9.JSON{
 				"message": "hello world",
