@@ -194,6 +194,8 @@ func TestServerInTestFunction(t *testing.T) {
 	assert.Equal(t, len(spy.GetCalls), 2)
 	assert.Equal(t, spy.GetCalls[0].Path, "/test")
 	assert.Equal(t, len(spy.GetCalls[0].Handlers), 1)
+	assert.Equal(t, spy.GetCalls[0].Handlers[0], getHandler)
 	assert.Equal(t, spy.GetCalls[1].Path, "/api/users")
 	assert.Equal(t, len(spy.GetCalls[1].Handlers), 1)
+	assert.Equal(t, spy.GetCalls[1].Handlers[0], getHandler)
 }
