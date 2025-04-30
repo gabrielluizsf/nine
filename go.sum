@@ -6,3 +6,5 @@ github.com/i9si-sistemas/assert v0.0.0-20241226143514-2239efdffece h1:dXX3IVWmQl
 github.com/i9si-sistemas/assert v0.0.0-20241226143514-2239efdffece/go.mod h1:xRwY4u6NZZjNLlgdBSaNESQEUSJ4CxuT4lWQAbvwfBQ=
 github.com/i9si-sistemas/assert v0.0.0-20250430141211-79069fada020 h1:vmIkEtSfgytmWllMqTXsdInjDP/Ia2HlpYsuRO+Hg+U=
 github.com/i9si-sistemas/assert v0.0.0-20250430141211-79069fada020/go.mod h1:xRwY4u6NZZjNLlgdBSaNESQEUSJ4CxuT4lWQAbvwfBQ=
+github.com/i9si-sistemas/assert v0.0.0-20250430171352-359d1481c58c h1:8DlRk8oT2YFyo8MbY00ge2wEEGGLZWr2mGJextdSePI=
+github.com/i9si-sistemas/assert v0.0.0-20250430171352-359d1481c58c/go.mod h1:xRwY4u6NZZjNLlgdBSaNESQEUSJ4CxuT4lWQAbvwfBQ=
