@@ -5,7 +5,7 @@ import (
 )
 
 // Server is a high-level abstraction for creating and managing HTTP servers using nine.
-type Server server.RouteManager
+type Server server.ServerManager
 
 // NewServer returns a new (server.Server) instance bound to the specified port.
 // It accepts both integer and string types for the port.

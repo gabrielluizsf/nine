@@ -17,7 +17,7 @@ func TestRouteGroup(t *testing.T) {
 	}
 	type JSON map[string]any
 	accounts := make(map[string]Account, 0)
-	testServer.Route("/account", func(router *RouteGroup) {
+	testServer.Route("/account", func(router RouteManager) {
 		router.Post("/create", func(c *Context) error {
 			var body Account
 			if err := Body(c.Request, &body); err != nil {
@@ -91,7 +91,7 @@ func TestGroup(t *testing.T) {
 			"account": acc,
 		})
 	})
-	profileGroup.Route("/photo", func(router *RouteGroup) {
+	profileGroup.Route("/photo", func(router RouteManager) {
 		router.Get("/:name", func(c *Context) error {
 			return c.Send([]byte(c.Param("name")))
 		})

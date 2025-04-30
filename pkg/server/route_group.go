@@ -7,7 +7,7 @@ import (
 // Group creates a new route group with a base path and optional middleware.
 // All routes registered within this group will have the base path prepended
 // and the middleware applied.
-func (s *Server) Group(basePath string, middlewares ...any) *RouteGroup {
+func (s *Server) Group(basePath string, middlewares ...any) RouteManager {
 	return NewRouteGroup(s, basePath, middlewares...)
 }
 
@@ -31,18 +31,22 @@ func NewRouteGroup(server RouteManager, basePath string, middlewares ...any) *Ro
 // Route accepts a base path and a function to define routes within the group.
 // All routes defined within the function will be prefixed with the group's base path
 // and the provided base path.
-func (s *Server) Route(basePath string, fn func(router *RouteGroup)) {
+func (s *Server) Route(basePath string, fn func(router RouteManager)) {
 	group := s.Group(basePath)
 	fn(group)
 }
 
 // Group creates a new route group with a base path and optional middlewares.
-func (g *RouteGroup) Group(basePath string, middlewares ...any) *RouteGroup {
+func (g *RouteGroup) Group(basePath string, middlewares ...any) RouteManager {
 	return NewRouteGroup(g.server, g.fullPath(basePath), append(g.middlewares, middlewares...)...)
 }
 
+func (g *RouteGroup) Use(middleware any) error {
+	return g.server.Use(middleware)
+}
+
 // Route accepts a base path and a function to define routes within the group.
-func (g *RouteGroup) Route(basePath string, fn func(router *RouteGroup)) {
+func (g *RouteGroup) Route(basePath string, fn func(router RouteManager)) {
 	group := g.Group(basePath)
 	fn(group)
 }

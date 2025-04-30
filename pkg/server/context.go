@@ -20,6 +20,7 @@ type Context struct {
 	*Response
 }
 
+// NewContext creates a new i9.Context pointer.
 func NewContext(
 	ctx context.Context,
 	req *http.Request,
@@ -33,6 +34,7 @@ func NewContext(
 	}
 }
 
+// ParamsParser parses the path parameters into the provided struct pointer.
 func (c *Context) ParamsParser(v any) error {
 	pattern := c.pathRegistred()
 	path := c.Request.HTTP().URL.Path
@@ -162,6 +164,12 @@ func (c *Context) ParamsParser(v any) error {
 	return nil
 }
 
+// SendString sends a string as the response body.
+func (c *Context) SendString(s string) error {
+	return c.Send([]byte(s))
+}
+
+// SendFile sends a file as the response body.
 func (c *Context) SendFile(filePath string) error {
 	b, err := os.ReadFile(filePath)
 	if err != nil {
@@ -170,10 +178,12 @@ func (c *Context) SendFile(filePath string) error {
 	return c.Send(b)
 }
 
+// BodyParser parses the request body into the provided struct pointer.
 func (c *Context) BodyParser(v any) error {
 	return json.NewDecoder(c.Request.Body()).Decode(v)
 }
 
+// QueryParser parses the query string into the provided struct pointer.
 func (c *Context) QueryParser(v any) error {
 	query := c.Request.HTTP().URL.Query()
 
@@ -192,19 +202,23 @@ func (c *Context) QueryParser(v any) error {
 	return json.Decode(data, v)
 }
 
+// ReqHeaderParser parses the request headers into the provided struct pointer.
 func (c *Context) ReqHeaderParser(v any) error {
 	headers := c.Request.HTTP().Header
 	return parseForm(headers, v)
 }
 
+// Header returns the value of the specified header.
 func (c *Context) Header(key string) string {
 	return c.Request.Header(key)
 }
 
+// Method returns the HTTP method of the request.
 func (c *Context) Method() string {
 	return c.Request.Method()
 }
 
+// IP returns the IP address of the client making the request.
 func (c *Context) IP() string {
 	if ip := c.Request.Header("X-Real-IP"); ip != "" {
 		return ip
@@ -215,6 +229,7 @@ func (c *Context) IP() string {
 	return c.Request.HTTP().RemoteAddr
 }
 
+// IPs returns the IP addresses of the clients making the request.
 func (c *Context) IPs() []string {
 	ips := c.Request.Header("X-Forwarded-For")
 	if ips == "" {
@@ -223,12 +238,14 @@ func (c *Context) IPs() []string {
 	return splitComma(ips)
 }
 
+// Body returns the request body as a byte slice.
 func (c *Context) Body() []byte {
 	body := c.Request.Body()
 	defer body.Reset()
 	return body.Bytes()
 }
 
+// Query returns the value of the specified query parameter.
 func (c *Context) Query(name string, defaultValue ...string) string {
 	value := c.Request.Query(name)
 	if value == "" && len(defaultValue) > 0 {
@@ -237,6 +254,7 @@ func (c *Context) Query(name string, defaultValue ...string) string {
 	return value
 }
 
+// Params returns the value of the specified path parameter.
 func (c *Context) Params(name string, defaultValue ...string) string {
 	value := c.Request.Param(name)
 	if value == "" && len(defaultValue) > 0 {
@@ -245,6 +263,7 @@ func (c *Context) Params(name string, defaultValue ...string) string {
 	return value
 }
 
+// FormFile returns the file associated with the specified form key.
 func (c *Context) FormFile(key string) (*multipart.FileHeader, error) {
 	_, header, err := c.Request.HTTP().FormFile(key)
 	if err != nil {
@@ -253,19 +272,23 @@ func (c *Context) FormFile(key string) (*multipart.FileHeader, error) {
 	return header, nil
 }
 
+// SendStatus sends a status code as the response body.
 func (c *Context) SendStatus(status int) error {
 	return c.Response.SendStatus(status)
 }
 
+// Status sets the status code for the response.
 func (c *Context) Status(statusCode int) *Context {
 	c.Response = c.Response.Status(statusCode)
 	return c
 }
 
+// Send sends the specified data as the response body.
 func (c *Context) Send(data []byte) error {
 	return c.Response.Send(data)
 }
 
+// JSON sends a JSON-encoded response.
 func (c *Context) JSON(data any) error {
 	b, err := json.Marshal(data)
 	if err != nil {

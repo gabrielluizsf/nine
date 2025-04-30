@@ -190,3 +190,13 @@ func TestFormFile(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, header.Filename, "test.txt")
 }
+
+func TestSendString(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	res := httptest.NewRecorder()
+	c := NewContext(context.Background(), req, res)
+	err := c.SendString("Hello World!")
+	assert.Nil(t, err)
+	assert.Equal(t, res.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+	assert.Equal(t, res.Body.String(), "Hello World!")
+}
