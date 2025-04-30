@@ -13,18 +13,18 @@ func TestServerSpy(t *testing.T) {
 	t.Run("NewServer creates empty spy", func(t *testing.T) {
 		s := NewServer()
 		assert.NotNil(t, s.mu)
-		assert.Empty(t, s.UseCalls)
-		assert.Empty(t, s.GetCalls)
-		assert.Empty(t, s.PostCalls)
-		assert.Empty(t, s.PutCalls)
-		assert.Empty(t, s.PatchCalls)
-		assert.Empty(t, s.DeleteCalls)
-		assert.Empty(t, s.RouteCalls)
-		assert.Empty(t, s.GroupCalls)
-		assert.Empty(t, s.ServeFilesCalls)
+		assert.Equal(t, len(s.UseCalls), 0)
+		assert.Equal(t, len(s.GetCalls), 0)
+		assert.Equal(t, len(s.PostCalls), 0)
+		assert.Equal(t, len(s.PutCalls), 0)
+		assert.Equal(t, len(s.PatchCalls), 0)
+		assert.Equal(t, len(s.DeleteCalls), 0)
+		assert.Equal(t, len(s.RouteCalls), 0)
+		assert.Equal(t, len(s.GroupCalls), 0)
+		assert.Equal(t, len(s.ServeFilesCalls), 0)
 		assert.Zero(t, s.TestCalls)
 		assert.Zero(t, s.ListenCalls)
-		assert.Empty(t, s.ShutdownCalls)
+		assert.Equal(t, len(s.ShutdownCalls), 0)
 	})
 
 	t.Run("Use records middleware calls", func(t *testing.T) {
@@ -68,7 +68,7 @@ func TestServerSpy(t *testing.T) {
 		called := false
 		s.Route("/api", func(rm i9.RouteManager) {
 			called = true
-			_, ok := rm.(*i9.RouteGroup)
+			_, ok := rm.(*RouteGroup)
 			assert.True(t, ok)
 		})
 
@@ -82,7 +82,7 @@ func TestServerSpy(t *testing.T) {
 		middleware := func(_ *i9.Context) error { return nil }
 
 		group := s.Group("/admin", middleware)
-		_, ok := group.(*i9.RouteGroup)
+		_, ok := group.(*RouteGroup)
 		assert.True(t, ok)
 		assert.Equal(t, len(s.GroupCalls), 1)
 		assert.Equal(t, "/admin", s.GroupCalls[0].Prefix)
@@ -101,9 +101,9 @@ func TestServerSpy(t *testing.T) {
 	t.Run("Test increments counter and returns TestServer", func(t *testing.T) {
 		s := NewServer()
 		ts := s.Test()
-
+		
 		assert.Equal(t, 1, s.TestCalls)
-		assert.Equal(t, ts, nil)
+		assert.Equal(t, ts, "\u0026{\u003cnil\u003e}")
 	})
 
 	t.Run("Listen increments counter", func(t *testing.T) {
@@ -173,7 +173,7 @@ func TestRouteGroupSpy(t *testing.T) {
 
 		group.Route("/v1", func(rm i9.RouteManager) {
 			called = true
-			_, ok := rm.(*i9.RouteGroup)
+			_, ok := rm.(*RouteGroup)
 			assert.True(t, ok)
 		})
 
