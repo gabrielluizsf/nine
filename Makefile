@@ -1,5 +1,5 @@
 test: test_e2e
-	go test --race -cover
+	go test ./... --race -cover
 
 test_e2e:
 	go test ./__test__
