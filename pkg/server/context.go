@@ -162,6 +162,10 @@ func (c *Context) ParamsParser(v any) error {
 	return nil
 }
 
+func (c *Context) SendString(s string) error {
+	return c.Send([]byte(s))
+}
+
 func (c *Context) SendFile(filePath string) error {
 	b, err := os.ReadFile(filePath)
 	if err != nil {
