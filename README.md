@@ -76,13 +76,13 @@ func main() {
 	server := nine.NewServer(8080)
 
 	server.Get("/hello", func(c *i9.Context) error {
-		return c.Send([]byte("Hello World"))
+		return c.SendString("Hello World")
 	})
 
 	server.Get("/hello/:name", func(c *i9.Context) error {
 		name := c.Param("name")
 		message := fmt.Sprintf("Hello %s", name)
-		return c.Send([]byte(message))
+		return c.SendString(message)
 	})
 
 	log.Fatal(server.Listen())
@@ -99,7 +99,7 @@ server.Post("/create", func(c *i9.Context) error {
 		return c.Status(http.StatusCreated).Send([]byte("Recurso criado com sucesso"))
 })
 
-server.Route("/billing", func(router *i9.RouteGroup) {
+server.Route("/billing", func(router i9.RouteManager) {
 	router.Get("/credits", func(c *i9.Context) error {
 		return c.JSON(nine.JSON{"credits": 5000})
 	})
