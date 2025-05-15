@@ -12,18 +12,19 @@ type Server struct {
 	mu *sync.Mutex
 
 	// Recorded method calls
-	UseCalls        []UseCall
-	GetCalls        []RouteCall
-	PostCalls       []RouteCall
-	PutCalls        []RouteCall
-	PatchCalls      []RouteCall
-	DeleteCalls     []RouteCall
-	RouteCalls      []RouteCall
-	GroupCalls      []GroupCall
-	ServeFilesCalls []ServeFilesCall
-	TestCalls       int
-	ListenCalls     int
-	ShutdownCalls   []context.Context
+	UseCalls          []UseCall
+	GetCalls          []RouteCall
+	PostCalls         []RouteCall
+	PutCalls          []RouteCall
+	PatchCalls        []RouteCall
+	DeleteCalls       []RouteCall
+	RouteCalls        []RouteCall
+	GroupCalls        []GroupCall
+	ServeFilesCalls   []ServeFilesCall
+	TestCalls         int
+	ListenCalls       int
+	ShutdownCalls     []context.Context
+	CertFile, KeyFile string
 }
 
 type UseCall struct {
@@ -204,6 +205,14 @@ func (s *Server) Listen() error {
 	defer s.mu.Unlock()
 
 	s.ListenCalls++
+	return nil
+}
+
+func (s *Server) ListenTLS(certFile, keyFile string) error {
+	s.mu.Lock()
+	s.CertFile = certFile
+	s.KeyFile = keyFile
+	defer s.mu.Unlock()
 	return nil
 }
 

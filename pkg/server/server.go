@@ -137,12 +137,22 @@ func (s *ServerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //	}
 //	log.Fatal(server.Listen())
 func (s *Server) Listen() error {
+	return s.listen(s.httpServer.ListenAndServe)
+}
+
+func (s *Server) ListenTLS(certFile, keyFile string) error {
+	return s.listen(func()error{
+		return s.httpServer.ListenAndServeTLS(certFile, keyFile)
+	})
+}
+
+func (s *Server) listen(fn func() error) error {
 	errCh := make(chan error)
 	server := s.httpServer
 	server.Handler = s.Handler()
 	server.Addr = s.addr
 	go func() {
-		err := server.ListenAndServe()
+		err := fn()
 		if err != nil && err != http.ErrServerClosed {
 			errCh <- err
 			return
@@ -397,7 +407,7 @@ func registerMiddlewares(handler http.Handler, middlewares ...Handler) http.Hand
 }
 
 // HandlerTester is an interface that represents a handler that can be tested.
-type HandlerTester interface{
+type HandlerTester interface {
 	// Handler returns the handler to be tested.
 	Handler() http.Handler
 }

@@ -10,6 +10,13 @@ import (
 )
 
 func TestServerSpy(t *testing.T) {
+
+	t.Run("ListenTLS", func(t *testing.T) {
+		server := NewServer()
+		assert.Nil(t, server.ListenTLS("cert.pem", "key.pem"))
+		assert.Equal(t, server.CertFile, "cert.pem")
+		assert.Equal(t, server.KeyFile, "key.pem")
+	})
 	t.Run("NewServer creates empty spy", func(t *testing.T) {
 		s := NewServer()
 		assert.NotNil(t, s.mu)
