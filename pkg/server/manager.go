@@ -97,6 +97,8 @@ type ServerManager interface {
 	ServeFiles(endpoint string, dirPath string)
 	// Listen starts the HTTP server, listening on the configured address, and binds all registered routes and middleware.
 	Listen() error
+	// ListenTLS starts the HTTPS server, listening on the configured address, and binds all registered routes and middleware.
+	ListenTLS(certFile, keyFile string) error
 	// Shutdown gracefully shuts down the server without interrupting any active connections.
 	Shutdown(ctx context.Context) error
 	// Test returns a test server for testing purposes.
