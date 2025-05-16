@@ -115,6 +115,10 @@ func (s *Server) Port() string {
 	return s.port
 }
 
+func (s *Server) resetPort() {
+	s.port = ""
+}
+
 func (s *Server) Handler() http.Handler {
 	s.registerRoutes()
 	s.setAddr()
@@ -249,6 +253,7 @@ func banner(address string) string {
 //
 //	 wg.Wait()
 func (s *Server) Shutdown(ctx context.Context) error {
+	s.resetPort()
 	return s.httpServer.Shutdown(ctx)
 }
 
