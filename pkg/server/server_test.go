@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/i9si-sistemas/assert"
 	"github.com/i9si-sistemas/nine/internal/json"
 )
 
@@ -469,6 +470,7 @@ func TestShutdown(t *testing.T) {
 	if err := server.Shutdown(ctx); err != nil {
 		t.Error(err)
 	}
+	assert.Empty(t, server.Port())
 }
 func TestUse(t *testing.T) {
 	message := "new request received"
