@@ -103,4 +103,6 @@ type ServerManager interface {
 	Shutdown(ctx context.Context) error
 	// Test returns a test server for testing purposes.
 	Test() *TestServer
+	// Port returns the port the server is listening on.
+	Port() string
 }
