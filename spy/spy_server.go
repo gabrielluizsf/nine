@@ -216,6 +216,10 @@ func (s *Server) ListenTLS(certFile, keyFile string) error {
 	return nil
 }
 
+func (s *Server) Port() (port string) {
+	return 
+}
+
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
