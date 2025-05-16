@@ -219,9 +219,7 @@ func TestHandler(t *testing.T) {
 	w = httptest.NewRecorder()
 	r = httptest.NewRequest(http.MethodGet, "/", nil)
 	h.ServeHTTP(w, r)
-	if w.Code != http.StatusMovedPermanently {
-		t.Fail()
-	}
+	assert.Equal(t, w.Code, http.StatusFound)
 }
 
 func TestBodyClone(t *testing.T) {
