@@ -271,8 +271,6 @@ func (s *Server) setAddr() error {
 			return err
 		}
 		s.port = port
-		s.addr = fmt.Sprintf(":%s", port)
-		return nil
 	}
 	s.addr = fmt.Sprintf(":%s", s.port)
 	return nil
