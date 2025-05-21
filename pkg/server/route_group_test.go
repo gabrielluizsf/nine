@@ -148,3 +148,25 @@ func assertGroupEndpoints(t assert.T, testServer *Server) {
 	assert.NoError(t, err)
 	assert.False(t, response.Created)
 }
+
+func TestMultipleRouteCall(t *testing.T) {
+	s := New(84184713)
+	s.Route("/v1", func(router RouteManager) {
+		router.Get("/hello", func(req *Request, res *Response) error {
+			return res.Send([]byte("Hello World"))
+		})
+		router.Route("/home", func(rm RouteManager) {
+			rm.Get("/", func(req *Request, res *Response) error {
+				return res.Send([]byte("Home"))
+			})
+		})
+	})
+	req := httptest.NewRequest(http.MethodGet, "/v1/hello", nil)
+	w := s.Test().Request(req)
+	assert.Equal(t, w.Result().StatusCode, http.StatusOK)
+	assert.Equal(t, w.Body.Bytes(), []byte("Hello World"))
+	req = httptest.NewRequest(http.MethodGet, "/v1/home", nil)
+	w = s.Test().Request(req)
+	assert.Equal(t, w.Result().StatusCode, http.StatusOK)
+	assert.Equal(t, w.Body.Bytes(), []byte("Home"))
+}
