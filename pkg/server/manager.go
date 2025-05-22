@@ -87,8 +87,8 @@ type RouteManager interface {
 	Group(endpoint string, middlewares ...any) RouteManager
 }
 
-// ServerManager defines the interface for managing servers.
-type ServerManager interface {
+// Manager defines the interface for managing servers.
+type Manager interface {
 	RouteManager
 	// ServeFiles serves static files from the specified directory at the specified endpoint.
 	// Example:
