@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -163,7 +164,6 @@ func (s *Server) listen(fn func() error) error {
 		}
 		errCh <- nil
 	}()
-
 	log.Println(banner(s.addr))
 	return <-errCh
 }
@@ -177,7 +177,7 @@ func banner(address string) string {
 		"/_/ /_/_/_/ /_/\\___/ ",
 		"                     ",
 	}
-	addressLine := fmt.Sprintf("http://127.0.0.1%s", address)
+	addressLine := fmt.Sprintf("http://127.0.0.1%s [PID: %d]", address, os.Getpid())
 	maxLogoWidth := 0
 	for _, line := range logo {
 		if len([]rune(line)) > maxLogoWidth {
