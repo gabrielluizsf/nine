@@ -6,9 +6,11 @@ type Handler func(req *Request, res *Response) error
 
 type HandlerWithContext func(c *Context) error
 
-func (h HandlerWithContext) Handler() Handler {
-	return func(req *Request, res *Response) error {
+func (h HandlerWithContext) Handler(req *Request, res *Response) Handler {
+	return func(_ *Request, _ *Response) error {
 		c := NewContext(req.Context(), req.HTTP(), res.HTTP())
+		c.Request = req
+		c.Response = res
 		return h(c)
 	}
 }
