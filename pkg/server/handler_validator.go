@@ -7,19 +7,24 @@ import (
 
 // validateHandler checks if the provided handler is either a Handler or HandlerWithContext
 // and returns a standardized Handler function
-func validateHandler(h any) (Handler, error) {
+func validateHandler(h any) (validatedHandler Handler, err error) {
 	switch handler := h.(type) {
 	case Handler:
-		return handler, nil
+		validatedHandler = handler
 	case HandlerWithContext:
-		return handler.Handler(), nil
+		validatedHandler = func(req *Request, res *Response) error {
+			return handler.Handler(req, res)(req, res)
+		}
 	case func(req *Request, res *Response) error:
 		return Handler(handler), nil
 	case func(c *Context) error:
-		return HandlerWithContext(handler).Handler(), nil
+		validatedHandler = func(req *Request, res *Response) error {
+			return HandlerWithContext(handler).Handler(req, res)(req, res)
+		}
 	default:
 		return nil, fmt.Errorf("invalid handler type: %v - must be either nine.Handler or nine.HandlerWithContext", reflect.TypeOf(h))
 	}
+	return 
 }
 
 // registerHandlers validates and processes multiple handlers, returning the final handler and middlewares

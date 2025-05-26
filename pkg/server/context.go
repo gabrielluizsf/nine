@@ -27,10 +27,11 @@ func NewContext(
 	res http.ResponseWriter,
 ) *Context {
 	request := NewRequest(req)
+	response := NewResponse(res)
 	return &Context{
 		ctx:      ctx,
 		Request:  &request,
-		Response: &Response{res: res},
+		Response: &response,
 	}
 }
 

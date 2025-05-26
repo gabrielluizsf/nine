@@ -24,7 +24,7 @@ type Server struct {
 	globalMiddlewares []Handler
 	addr, port        string
 	corsEnabled       bool
-	corsHandler       Handler
+	corsHandler       HandlerWithContext
 }
 
 type Router struct {
@@ -47,7 +47,7 @@ func New[P int | string](port P) *Server {
 
 func (s *Server) EnableCors(h HandlerWithContext) {
 	s.corsEnabled = true
-	s.corsHandler = h.Handler()
+	s.corsHandler = h
 }
 
 // ServeFiles serves static files from the specified directory for a given URL pattern.
@@ -294,7 +294,7 @@ func (s *Server) registerRoutes() {
 			endpoint := parts[1]
 			if _, exists := registredCors[endpoint]; !exists {
 				registredCors[endpoint] = struct{}{}
-				s.mux.Handle(s.routePattern(http.MethodOptions, endpoint), httpHandler(s.corsHandler, endpoint))
+				s.mux.Handle(s.routePattern(http.MethodOptions, endpoint), httpHandlerWithContext(s.corsHandler, endpoint))
 			}
 		}
 
@@ -466,6 +466,22 @@ func httpMiddleware(m Handler, next http.Handler) http.Handler {
 		}
 		if !res.Sent() {
 			next.ServeHTTP(w, r)
+		}
+	})
+}
+
+func httpHandlerWithContext(h HandlerWithContext, pattern string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		req := NewRequest(r, pattern)
+		res := NewResponse(w)
+		handlerWithContext := h.Handler(&req, &res)
+		if err := handlerWithContext(&req, &res); err != nil {
+			if srvErr, ok := err.(*Error); ok && srvErr != nil {
+				srvErr.ServeHTTP(w, r)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	})
 }

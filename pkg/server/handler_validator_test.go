@@ -149,10 +149,10 @@ func TestHandlerWithContextConversion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			converted := tt.handler.Handler()
-
 			req := NewRequest(&http.Request{})
 			res := NewResponse(nil)
+			converted := tt.handler.Handler(&req, &res)
+
 
 			err := converted(&req, &res)
 			assert.Equal(t, err, tt.wantErr)

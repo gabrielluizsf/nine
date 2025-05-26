@@ -3,6 +3,7 @@ package e2e_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/i9si-sistemas/assert"
@@ -71,4 +72,39 @@ func TestNineServer(t *testing.T) {
 		Content:  payload["content"].(string),
 		ImageUrl: payload["imageUrl"].(string),
 	})
+}
+
+func TestBypassMiddleware(t *testing.T) {
+	server := nine.NewServer(42)
+	server.Use(func(req *i9.Request, res *i9.Response) error {
+		return res.Status(http.StatusUnauthorized).JSON(nine.JSON{
+			"error": "Unauthorized",
+		})
+	})
+	server.Get("/", func(req *i9.Request, res *i9.Response) error {
+		return res.Status(http.StatusOK).Send([]byte("hello world"))
+	})
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	res := server.Test().Request(req)
+	assert.NotEqual(t, res.Code, 200)
+	assert.Equal(t, res.Body.String(), "{\"error\":\"Unauthorized\"}\n")
+	assert.False(t, strings.Contains(res.Body.String(), "hello world"))
+
+	server = nine.NewServer(42)
+	server.Use(func(c *i9.Context) error {
+		return c.Status(http.StatusUnauthorized).JSON(nine.JSON{
+			"error": "Unauthorized",
+		})
+	})
+	var called bool
+	server.Get("/", func(c *i9.Context) error {
+		called = false
+		return c.Status(http.StatusOK).SendString("hello world")
+	})
+	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	res = server.Test().Request(req)
+	assert.Equal(t, res.Code, http.StatusUnauthorized)
+	assert.Equal(t, res.Body.String(), "{\"error\":\"Unauthorized\"}\n", "context bypass middleware")
+	assert.False(t, strings.Contains(res.Body.String(), "hello world"))
+	assert.False(t, called)
 }
