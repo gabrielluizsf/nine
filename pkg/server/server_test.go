@@ -408,6 +408,9 @@ func TestTransformPath(t *testing.T) {
 	if result != expected {
 		t.Fatalf("result %s, expected %s", result, expected)
 	}
+	result = server.transformPath("/user/:id/posts//:name")
+	expected = "/user/{id}/posts/{name}"
+	assert.Equal(t, result, expected)
 }
 
 func TestTestServer(t *testing.T) {
