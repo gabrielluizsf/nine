@@ -313,8 +313,13 @@ func (s *Server) routePattern(method, path string) string {
 }
 
 func (s *Server) transformPath(path string) string {
-	re := regexp.MustCompile(`:(\w+)`)
-	return re.ReplaceAllString(path, "{$1}")
+	reParam := regexp.MustCompile(`:(\w+)`)
+	reSlash := regexp.MustCompile(`/+`)
+
+	path = reParam.ReplaceAllString(path, `{$1}`)
+	path = reSlash.ReplaceAllString(path, `/`)
+
+	return path
 }
 
 // Get registers a route for handling GET requests at the specified endpoint.
