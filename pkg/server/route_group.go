@@ -1,8 +1,6 @@
 package server
 
-import (
-	"strings"
-)
+import "strings"
 
 // Group creates a new route group with a base path and optional middleware.
 // All routes registered within this group will have the base path prepended
@@ -38,8 +36,7 @@ func (s *Server) Route(basePath string, fn func(router RouteManager)) {
 
 // Group creates a new route group with a base path and optional middlewares.
 func (g *RouteGroup) Group(basePath string, middlewares ...any) RouteManager {
-	g.basePath += basePath
-	return g.server.Group(g.basePath, middlewares...)
+	return NewRouteGroup(g.server, g.fullPath(basePath), append(g.middlewares, middlewares...)...)
 }
 
 func (g *RouteGroup) Use(middleware any) error {
@@ -48,8 +45,7 @@ func (g *RouteGroup) Use(middleware any) error {
 
 // Route accepts a base path and a function to define routes within the group.
 func (g *RouteGroup) Route(basePath string, fn func(router RouteManager)) {
-	g.basePath += basePath
-	group := g.server.Group(g.basePath)
+	group := g.server.Group(g.fullPath(basePath))
 	fn(group)
 }
 
@@ -85,15 +81,10 @@ func (g *RouteGroup) Delete(path string, handlers ...any) error {
 
 // fullPath combines the group's base path with the provided path
 func (g *RouteGroup) fullPath(path string) string {
-	if path == "/" {
-		return g.basePath
-	}
-	fullPath := g.basePath
-	if !strings.HasSuffix(fullPath, "/") {
-		fullPath += "/"
-	}
-	path = strings.TrimPrefix(path, "/")
-	return fullPath + path
+    if path == "/" || path == "" {
+        return g.basePath
+    }
+    return strings.TrimSuffix(g.basePath, "/") + "/" + strings.TrimPrefix(path, "/")
 }
 
 // routeHandlers combines the group's middlewares with the provided handlers

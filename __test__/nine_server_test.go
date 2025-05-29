@@ -108,3 +108,50 @@ func TestBypassMiddleware(t *testing.T) {
 	assert.False(t, strings.Contains(res.Body.String(), "hello world"))
 	assert.False(t, called)
 }
+
+func TestGroupIsolation(t *testing.T) {
+	server := nine.NewServer(42)
+	v1 := server.Group("/v1")
+	v1.Get("/", func(c *i9.Context) error {
+		return c.SendString("v1")
+	})
+	account := v1.Group("/account")
+	account.Get("/:name", func(c *i9.Context) error {
+		return c.SendString(c.Param("name"))
+	})
+	loginGroup := account.Group("/login")
+	loginGroup.Get("/:name", func(c *i9.Context) error {
+		return c.SendString(c.Param("name"))
+	})
+	seller := v1.Group("seller")
+	seller.Get("/:name", func(c *i9.Context) error {
+		return c.SendString(c.Param("name"))
+	})
+	seller.Post("/new", func(c *i9.Context) error {
+		return c.Status(201).Send(c.Body())
+	})
+	req := httptest.NewRequest(http.MethodGet, "/v1", nil)
+	res := server.Test().Request(req)
+	assert.Equal(t, res.Code, 200)
+	assert.Equal(t, res.Body.String(), "v1")
+	req = httptest.NewRequest(http.MethodGet, "/v1/account/john", nil)
+	res = server.Test().Request(req)
+	assert.Equal(t, res.Code, 200)
+	assert.Equal(t, res.Body.String(), "john")
+	req = httptest.NewRequest(http.MethodGet, "/v1/account/login/john", nil)
+	res = server.Test().Request(req)
+	assert.Equal(t, res.Code, 200)
+	assert.Equal(t, res.Body.String(), "john")
+	req = httptest.NewRequest(http.MethodGet, "/v1/seller/maria", nil)
+	res = server.Test().Request(req)
+	assert.Equal(t, res.Code, 200)
+	assert.Equal(t, res.Body.String(), "maria")
+	buff, _ := nine.JSON{
+		"name":   "maria",
+		"salary": 1000,
+	}.Buffer()
+	req = httptest.NewRequest(http.MethodPost, "/v1/seller/new", buff)
+	res = server.Test().Request(req)
+	assert.Equal(t, res.Code, 201)
+	assert.Equal(t, res.Body.String(), "{\"name\":\"maria\",\"salary\":1000}")
+}
