@@ -9,4 +9,4 @@ cover:
 	@go test -coverprofile=./$(COVERAGE_DIR)/coverage.out ./... && mkdir -p $(COVERAGE_DIR) && go tool cover -html=./$(COVERAGE_DIR)/coverage.out -o $(COVERAGE_DIR)/index.html
 
 new-version:
-	go run ./version
+	@go run ./version
