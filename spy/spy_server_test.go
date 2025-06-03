@@ -41,7 +41,8 @@ func TestServerSpy(t *testing.T) {
 		err := s.Use(middleware)
 		assert.NoError(t, err)
 		assert.Equal(t, len(s.UseCalls), 1)
-		assert.Equal(t, middleware, s.UseCalls[0].Middlewares)
+		assert.Equal(t, len(s.UseCalls[0].Middlewares), 1)
+		assert.Equal(t, middleware, s.UseCalls[0].Middlewares[0])
 	})
 
 	t.Run("HTTP methods record calls", func(t *testing.T) {
@@ -170,7 +171,8 @@ func TestRouteGroupSpy(t *testing.T) {
 		err := group.Use(middleware)
 		assert.NoError(t, err)
 		assert.Equal(t, len(s.UseCalls), 1)
-		assert.Equal(t, middleware, s.UseCalls[0].Middlewares)
+		assert.Equal(t, len(s.UseCalls[0].Middlewares), 1)
+		assert.Equal(t, middleware, s.UseCalls[0].Middlewares[0])
 	})
 
 	t.Run("RouteGroup Route records nested prefix", func(t *testing.T) {

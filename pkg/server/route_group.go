@@ -39,8 +39,8 @@ func (g *RouteGroup) Group(basePath string, middlewares ...any) RouteManager {
 	return NewRouteGroup(g.server, g.fullPath(basePath), append(g.middlewares, middlewares...)...)
 }
 
-func (g *RouteGroup) Use(middleware any) error {
-	return g.server.Use(middleware)
+func (g *RouteGroup) Use(middlewares ...any) error {
+	return g.server.Use(middlewares...)
 }
 
 // Route accepts a base path and a function to define routes within the group.

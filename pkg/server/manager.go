@@ -4,8 +4,8 @@ import "context"
 
 // RouteManager defines the interface for managing routes and groups.
 type RouteManager interface {
-	// Use adds middleware to the server.
-	Use(middleware any) error
+	// Use adds middlewares to the server.
+	Use(middlewares ...any) error
 	// Get registers a route for GET requests at the specified endpoint.
 	// Example:
 	//server.Get("/hello", func(c *i9.Context) error {

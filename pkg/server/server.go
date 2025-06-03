@@ -398,12 +398,14 @@ func (s *Server) Delete(endpoint string, handlers ...any) error {
 }
 
 // Use adds a global middleware to the server's middleware stack.
-func (s *Server) Use(middleware any) error {
-	handler, err := validateHandler(middleware)
-	if err != nil {
-		return fmt.Errorf("invalid middleware: %w", err)
+func (s *Server) Use(middlewares ...any) error {
+	for _, middleware := range middlewares {
+		handler, err := validateHandler(middleware)
+		if err != nil {
+			return fmt.Errorf("invalid middleware: %w", err)
+		}
+		s.globalMiddlewares = append(s.globalMiddlewares, handler)
 	}
-	s.globalMiddlewares = append(s.globalMiddlewares, handler)
 	return nil
 }
 

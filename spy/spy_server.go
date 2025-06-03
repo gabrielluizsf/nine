@@ -28,7 +28,7 @@ type Server struct {
 }
 
 type UseCall struct {
-	Middlewares any
+	Middlewares []any
 	Err         error
 }
 
@@ -68,7 +68,7 @@ func NewServer() *Server {
 	}
 }
 
-func (s *Server) Use(middlewares any) error {
+func (s *Server) Use(middlewares ...any) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -301,12 +301,12 @@ func (g *RouteGroup) Delete(path string, handlers ...any) error {
 	return err
 }
 
-func (g *RouteGroup) Use(middleware any) error {
+func (g *RouteGroup) Use(middlewares ...any) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	err := error(nil)
 	g.parent.UseCalls = append(g.parent.UseCalls, UseCall{
-		Middlewares: middleware,
+		Middlewares: middlewares,
 		Err:         err,
 	})
 	return err
