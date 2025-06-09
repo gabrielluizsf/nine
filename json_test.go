@@ -23,6 +23,15 @@ func TestGenericJSON(t *testing.T) {
 	validateBytes(t, json, username)
 }
 
+func TestWithBytes(t *testing.T) {
+	json, err := JSON{}.WithBytes([]byte(`{"username":"gopher"}`))
+	assert.NoError(t, err)
+	json.Assert(t, "username", "gopher")
+	gJSON, err := GenericJSON[string, int]{}.WithBytes([]byte(`{"age":23}`))
+	assert.NoError(t, err)
+	gJSON.Assert(t, "age", 23)
+}
+
 func validateBytes(t *testing.T, json json.Buffer, username string) {
 	b, err := json.Bytes()
 	if err != nil {

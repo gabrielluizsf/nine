@@ -3,7 +3,9 @@ package nine
 import (
 	"bytes"
 	"io"
+	"errors"
 
+	"github.com/i9si-sistemas/assert"
 	"github.com/i9si-sistemas/nine/internal/json"
 )
 
@@ -32,6 +34,17 @@ import (
 //	}
 type GenericJSON[K comparable, V any] map[K]V
 
+// Get retrieves the value associated with the given key from the JSON data.
+func (g GenericJSON[K, V]) Get(key K) (value V, err error) {
+	v, ok := g[key]
+	if ok {
+		return v, nil
+	}
+	err = ErrFieldNotFound
+	return
+}
+
+
 // String returns a string representation of the JSON data.
 func (g GenericJSON[K, V]) String() string {
 	return json.String(g)
@@ -41,6 +54,21 @@ func (g GenericJSON[K, V]) String() string {
 // It returns a slice of bytes containing the JSON representation and an error, if any.
 func (g GenericJSON[K, V]) Bytes() ([]byte, error) {
 	return jsonBytes(g)
+}
+
+// WithBytes decodes a byte slice containing JSON data into a GenericJSON map.
+func (GenericJSON[K, V]) WithBytes(b []byte) (result GenericJSON[K, V], err error) {
+	if err := DecodeJSON(b, &result); err != nil {
+		return nil, err
+	}
+	return
+}
+
+// Assert asserts that the value associated with the given key in the GenericJSON
+func (g GenericJSON[K, V]) Assert(t assert.T, key K, expectedValue V) {
+	v, err := g.Get(key)
+	assert.NotEqual(t, err, ErrFieldNotFound)
+	assert.Equal(t, v, expectedValue)
 }
 
 // Buffer converts the GenericJSON into a bytes.Buffer pointer using JSON encoding.
@@ -57,6 +85,19 @@ func (g GenericJSON[K, V]) Buffer() (*bytes.Buffer, error) {
 // facilitating the manipulation of JSON data in map format.
 type JSON map[string]any
 
+// ErrFieldNotFound is an error that indicates that a field was not found in the JSON data.
+var ErrFieldNotFound = errors.New("field not found")
+
+// Get retrieves the value associated with the given key from the JSON data.
+func (j JSON) Get(key string) (value any, err error) {
+	v, ok := j[key]
+	if ok {
+		return v, nil
+	}
+	err = ErrFieldNotFound
+	return
+}
+
 // String returns a string representation of the JSON data.
 func (j JSON) String() string {
 	return json.String(j)
@@ -66,6 +107,21 @@ func (j JSON) String() string {
 // It returns a slice of bytes containing the JSON representation and an error, if any.
 func (j JSON) Bytes() ([]byte, error) {
 	return jsonBytes(j)
+}
+
+// WithBytes decodes the JSON data from a byte slice and returns a JSON object.	
+func (j JSON) WithBytes(b []byte) (result JSON, err error) {
+	if err := DecodeJSON(b, &result); err != nil {
+		return nil, err
+	}
+	return
+}
+
+// Assert asserts that the value associated with the given key in the JSON
+func (j JSON) Assert(t assert.T, key string, expectedValue any) {
+	v, err := j.Get(key)
+	assert.NotEqual(t, err, ErrFieldNotFound)
+	assert.Equal(t, v, expectedValue)
 }
 
 // Buffer converts the JSON into a bytes.Buffer pointer using JSON encoding.
