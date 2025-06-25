@@ -32,6 +32,22 @@ func TestWithBytes(t *testing.T) {
 	gJSON.Assert(t, "age", 23)
 }
 
+func TestDecode(t *testing.T) {
+	json := JSON{"username": "gopher"}
+	var user struct {
+		Username string `json:"username"`
+	}
+
+	if err := json.Decode(&user); err != nil {
+		t.Fatal(err)
+	}
+
+	if user.Username != "gopher" {
+		t.Fatal("user not decoded")
+	}
+}
+
+
 func validateBytes(t *testing.T, json json.Buffer, username string) {
 	b, err := json.Bytes()
 	if err != nil {

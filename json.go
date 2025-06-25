@@ -2,8 +2,8 @@ package nine
 
 import (
 	"bytes"
-	"io"
 	"errors"
+	"io"
 
 	"github.com/i9si-sistemas/assert"
 	"github.com/i9si-sistemas/nine/internal/json"
@@ -44,7 +44,6 @@ func (g GenericJSON[K, V]) Get(key K) (value V, err error) {
 	return
 }
 
-
 // String returns a string representation of the JSON data.
 func (g GenericJSON[K, V]) String() string {
 	return json.String(g)
@@ -62,6 +61,13 @@ func (GenericJSON[K, V]) WithBytes(b []byte) (result GenericJSON[K, V], err erro
 		return nil, err
 	}
 	return
+}
+
+// Decode decodes the JSON data into the provided value.
+// The destination value must be a pointer for the function to populate the decoded value.
+func (g GenericJSON[K, V]) Decode(v any) error {
+	b, _ := g.Bytes()
+	return json.Decode(b, v)
 }
 
 // Assert asserts that the value associated with the given key in the GenericJSON
@@ -109,12 +115,19 @@ func (j JSON) Bytes() ([]byte, error) {
 	return jsonBytes(j)
 }
 
-// WithBytes decodes the JSON data from a byte slice and returns a JSON object.	
+// WithBytes decodes the JSON data from a byte slice and returns a JSON object.
 func (j JSON) WithBytes(b []byte) (result JSON, err error) {
 	if err := DecodeJSON(b, &result); err != nil {
 		return nil, err
 	}
 	return
+}
+
+// Decode decodes the JSON data into the provided value.
+// The destination value must be a pointer for the function to populate the decoded value.
+func (j JSON) Decode(v any) error {
+	b, _ := j.Bytes()
+	return json.Decode(b, v)
 }
 
 // Assert asserts that the value associated with the given key in the JSON
@@ -164,15 +177,15 @@ func DecodeJSON[V any](b []byte, v *V) error {
 //
 // Example:
 //
-//		var user struct {
-//			Username string `json:"username"`
-//		}
-//		jsonReader := bytes.NewReader(jsonBytes)
-//		if err := DecodeJSONReader(jsonReader, &user); err != nil {
-//			// Handle the error
-//		}
+//	var user struct {
+//		Username string `json:"username"`
+//	}
+//	jsonReader := bytes.NewReader(jsonBytes)
+//	if err := DecodeJSONReader(jsonReader, &user); err != nil {
+//		// Handle the error
+//	}
 func DecodeJSONReader[V any](r io.Reader, v *V) error {
-	b, err :=  io.ReadAll(r); 
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return err
 	}
@@ -185,13 +198,13 @@ func DecodeJSONReader[V any](r io.Reader, v *V) error {
 //
 // Example:
 //
-//		jsonBytes := []byte(`{"name": "John", "age": 30}`)
+//	jsonBytes := []byte(`{"name": "John", "age": 30}`)
 //
-//		jsonObj, err := NewJSON(jsonBytes)
-//		if err != nil {
-//			// Handle the error
-//		}
-//		// Use the JSON object
+//	jsonObj, err := NewJSON(jsonBytes)
+//	if err != nil {
+//		// Handle the error
+//	}
+//	// Use the JSON object
 func NewJSON(data []byte) (JSON, error) {
 	var j JSON
 	if err := json.Decode(data, &j); err != nil {
