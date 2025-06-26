@@ -3,8 +3,9 @@ package server
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
+
+	"github.com/i9si-sistemas/stringx"
 )
 
 type CorsConfig struct {
@@ -14,7 +15,6 @@ type CorsConfig struct {
 	AllowCredentials bool
 	MaxAge           int64
 }
-
 
 func Cors(server *Server, options ...CorsConfig) HandlerWithContext {
 	config := DefaultCorsConfig()
@@ -42,9 +42,9 @@ func Cors(server *Server, options ...CorsConfig) HandlerWithContext {
 		if config.AllowCredentials && allowedOrigin != "*" {
 			c.Response.SetHeader("Access-Control-Allow-Credentials", "true")
 		}
-
-		c.Response.SetHeader("Access-Control-Allow-Methods", strings.Join(config.AllowMethods, ","))
-		c.Response.SetHeader("Access-Control-Allow-Headers", strings.Join(config.AllowHeaders, ","))
+		convert := func(s []string) stringx.String { return stringx.ConvertStrings(s...).Join(",") }
+		c.Response.SetHeader("Access-Control-Allow-Methods", convert(config.AllowMethods).String())
+		c.Response.SetHeader("Access-Control-Allow-Headers", convert(config.AllowHeaders).String())
 		c.Response.SetHeader("Access-Control-Max-Age", fmt.Sprint(config.MaxAge))
 	}
 
