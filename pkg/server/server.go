@@ -14,7 +14,8 @@ import (
 	"os"
 	"regexp"
 	"sort"
-	"strings"
+
+	"github.com/i9si-sistemas/stringx"
 )
 
 type Server struct {
@@ -146,7 +147,7 @@ func (s *Server) Listen() error {
 }
 
 func (s *Server) ListenTLS(certFile, keyFile string) error {
-	return s.listen(func()error{
+	return s.listen(func() error {
 		return s.httpServer.ListenAndServeTLS(certFile, keyFile)
 	})
 }
@@ -188,32 +189,39 @@ func banner(address string) string {
 	contentWidth := max(maxLogoWidth, len(addressLine))
 	totalWidth := contentWidth + 4
 
-	border := strings.Repeat("_", totalWidth)
-	top := fmt.Sprintf(" %s \n|%s|", border, strings.Repeat(" ", totalWidth))
+	border := stringx.Empty.Repeat("_", totalWidth)
+	space := stringx.Empty.Repeat(stringx.Space.String(), totalWidth)
+	top := fmt.Sprintf(" %s \n|%s|", border, space)
 
-	var content strings.Builder
+	content := stringx.NewBuilder()
 	for _, line := range logo {
 		lineRunes := []rune(line)
 		spaces := totalWidth - len(lineRunes)
 		leftPad := spaces / 2
 		rightPad := spaces - leftPad
-		content.WriteString(fmt.Sprintf("|%s%s%s|\n",
-			strings.Repeat(" ", leftPad),
+		leftSpace := stringx.Empty.Repeat(stringx.Space.String(), leftPad)
+		rightSpace := stringx.Empty.Repeat(stringx.Space.String(), rightPad)
+		fmt.Fprintf(content, "|%s%s%s|\n",
+			leftSpace,
 			line,
-			strings.Repeat(" ", rightPad)))
+			rightSpace,
+		)
 	}
 
-	content.WriteString(fmt.Sprintf("|%s|\n", strings.Repeat(" ", totalWidth)))
+	fmt.Fprintf(content, "|%s|\n", space)
 
 	spaces := totalWidth - len(addressLine)
 	leftPad := spaces / 2
 	rightPad := spaces - leftPad
-	content.WriteString(fmt.Sprintf("|%s%s%s|\n",
-		strings.Repeat(" ", leftPad),
+	leftSpace := stringx.Empty.Repeat(stringx.Space.String(), leftPad)
+	rightSpace := stringx.Empty.Repeat(stringx.Space.String(), rightPad)
+	fmt.Fprintf(content, "|%s%s%s|\n",
+		leftSpace,
 		addressLine,
-		strings.Repeat(" ", rightPad)))
+		rightSpace,
+	)
 
-	bottom := fmt.Sprintf("|%s|", strings.Repeat("_", totalWidth))
+	bottom := fmt.Sprintf("|%s|", border)
 
 	return fmt.Sprintf("\n%s\n%s%s", top, content.String(), bottom)
 }
@@ -287,7 +295,7 @@ func (s *Server) registerRoutes() {
 		finalHandler = registerMiddlewares(finalHandler, route.middlewares...)
 		s.mux.Handle(route.pattern, finalHandler)
 		if s.corsEnabled {
-			parts := strings.SplitN(route.pattern, " ", 2)
+			parts := stringx.String(route.pattern).SplitN(stringx.Space.String(), 2)
 			if len(parts) < 2 {
 				return
 			}
@@ -539,8 +547,7 @@ func ServeFiles(path http.FileSystem) Handler {
 		res.HTTP().Header().Set("X-Content-Type-Options", "nosniff")
 		res.HTTP().Header().Set("X-Frame-Options", "DENY")
 		res.HTTP().Header().Set("X-XSS-Protection", "1; mode=block")
-
-		if strings.Contains(req.Header("Accept-Encoding"), "gzip") {
+		if stringx.String(req.Header("Accept-Encoding")).Includes("gzip") {
 			res.HTTP().Header().Set("Content-Encoding", "gzip")
 			gz := gzip.NewWriter(res.HTTP())
 			defer gz.Close()
