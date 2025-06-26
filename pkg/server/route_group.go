@@ -1,6 +1,8 @@
 package server
 
-import "strings"
+import (
+	"github.com/i9si-sistemas/stringx"
+)
 
 // Group creates a new route group with a base path and optional middleware.
 // All routes registered within this group will have the base path prepended
@@ -81,10 +83,14 @@ func (g *RouteGroup) Delete(path string, handlers ...any) error {
 
 // fullPath combines the group's base path with the provided path
 func (g *RouteGroup) fullPath(path string) string {
-    if path == "/" || path == "" {
-        return g.basePath
-    }
-    return strings.TrimSuffix(g.basePath, "/") + "/" + strings.TrimPrefix(path, "/")
+	if path == "/" || path == "" {
+		return g.basePath
+	}
+	convert := func(s string) stringx.String {
+		return stringx.String(s)
+	}
+	separator := "/"
+	return convert(g.basePath).TrimSuffix(separator).Concat(convert(separator)).Concat(convert(path).TrimPrefix(separator)).String()
 }
 
 // routeHandlers combines the group's middlewares with the provided handlers
