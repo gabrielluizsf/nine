@@ -6,3 +6,5 @@ github.com/i9si-sistemas/safeos v0.0.0-20250516190834-5da44d761eb9 h1:7eDBWZAECE
 github.com/i9si-sistemas/safeos v0.0.0-20250516190834-5da44d761eb9/go.mod h1:U8AKtfbCcE9fq+Ae8vDpNFWLJhenj/63wkMXiUdqlg8=
 github.com/i9si-sistemas/stringx v1.4.0 h1:ei95bVOI+Y5IGpLKLu4/WXbLqYYAF1EeOZcPdo9525k=
 github.com/i9si-sistemas/stringx v1.4.0/go.mod h1:+GhyHUFCjPCdi4BOTLuXI1O0VE0YZP1kn32XEcb9bk4=
+github.com/i9si-sistemas/stringx v1.4.2 h1:x+O2N8szMRLwXD3EFarRc3Opq6iwmuDQDZGDNk2hDII=
+github.com/i9si-sistemas/stringx v1.4.2/go.mod h1:+GhyHUFCjPCdi4BOTLuXI1O0VE0YZP1kn32XEcb9bk4=
