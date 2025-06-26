@@ -3,7 +3,8 @@ package client
 import (
 	"fmt"
 	netUrl "net/url"
-	"strings"
+
+	"github.com/i9si-sistemas/stringx"
 )
 
 // QueryParam represents a query parameter in the URL of an HTTP request.
@@ -18,8 +19,7 @@ func SetQueryParams(queryParams []QueryParam, url string) string {
 		return url
 	}
 
-	var builder strings.Builder
-	builder.WriteString(url)
+	builder := stringx.String(url).Builder()
 
 	for i, param := range queryParams {
 		value := netUrl.QueryEscape(fmt.Sprintf("%v", param.Value))
