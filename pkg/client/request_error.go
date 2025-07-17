@@ -41,6 +41,11 @@ func (err *RequestError) Error() string {
 
 type JSON map[string]any
 
+func (j JSON) Bytes() []byte {
+	b, _ := json.Marshal(j)
+	return b
+}
+
 func (err *RequestError) JSON() (payload JSON) {
 	_ = json.NewDecoder(err.Payload).Decode(&payload)
 	return
