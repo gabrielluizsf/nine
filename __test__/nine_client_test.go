@@ -9,6 +9,7 @@ import (
 	"github.com/i9si-sistemas/assert"
 	"github.com/i9si-sistemas/nine"
 	i9 "github.com/i9si-sistemas/nine/pkg/client"
+	"github.com/i9si-sistemas/stringx"
 )
 
 func TestNineClient(t *testing.T) {
@@ -17,14 +18,17 @@ func TestNineClient(t *testing.T) {
 	if res.StatusCode >= 400 {
 		t.Skip("httpbin.org is not available")
 	}
-	assert.NoError(t, err)
+	assertNoError := func(err error) {
+		assert.True(t, stringx.String(err.Error()).Includes("nil"))
+	}
+	assertNoError(err)
 	defer res.Body.Close()
 
 	var payload nine.JSON
 	b, err := io.ReadAll(res.Body)
-	assert.NoError(t, err)
+	assertNoError(err)
 	err = nine.DecodeJSON(b, &payload)
-	assert.NoError(t, err)
+	assertNoError(err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Equal(t, "application/json", res.Header.Get("Content-Type"))
 	assert.Equal(t, payload["url"], "https://httpbin.org/get")

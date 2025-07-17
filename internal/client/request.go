@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+
 	public "github.com/i9si-sistemas/nine/pkg/client"
 )
 
@@ -23,7 +24,7 @@ func newRequest(ctx context.Context, method, url string, body io.Reader) (*http.
 // Returns:
 //   - *http.Response: the HTTP response received from the server.
 //   - error: an error if the request preparation or execution failed, or nil if it was successful.
-func (c *client) executeRequest(method, url string, options *public.Options) (*http.Response, error) {
+func (c *client) executeRequest(method, url string, options *public.Options) (*http.Response, *public.RequestError) {
 	var (
 		headers     = options.Headers
 		body        = options.Body
@@ -33,8 +34,18 @@ func (c *client) executeRequest(method, url string, options *public.Options) (*h
 
 	req, err := newRequest(c.ctx, method, url, body)
 	if err != nil {
-		return nil, err
+		return nil, public.NewRequestError(err)
 	}
 	public.SetHeaders(req, headers)
-	return c.Response(req)
+	res, err := c.Response(req)
+	if err != nil {
+		return nil, public.NewRequestError(err)
+	}
+	if res.StatusCode >= http.StatusBadRequest {
+		return res, &public.RequestError{
+			StatusCode: res.StatusCode,
+			Payload:    res.Body,
+		}
+	}
+	return res, nil
 }

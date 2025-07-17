@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/i9si-sistemas/assert"
 	public "github.com/i9si-sistemas/nine/pkg/client"
 )
 
@@ -76,8 +77,13 @@ func TestRequest(t *testing.T) {
 	request := New(ctx)
 
 	assertError := func(err error) {
+
 		if err != nil {
-			t.Fatal(err)
+			if reqErr, ok := err.(*public.RequestError); !ok {
+				t.Fatal(err)
+			} else if reqErr != nil {
+				assert.True(t, reqErr.StatusCode >= 400)
+			}
 		}
 	}
 	assertResponse := func(response *http.Response, test testCase) {

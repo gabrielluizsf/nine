@@ -8,3 +8,5 @@ github.com/i9si-sistemas/stringx v1.4.0 h1:ei95bVOI+Y5IGpLKLu4/WXbLqYYAF1EeOZcPd
 github.com/i9si-sistemas/stringx v1.4.0/go.mod h1:+GhyHUFCjPCdi4BOTLuXI1O0VE0YZP1kn32XEcb9bk4=
 github.com/i9si-sistemas/stringx v1.4.2 h1:x+O2N8szMRLwXD3EFarRc3Opq6iwmuDQDZGDNk2hDII=
 github.com/i9si-sistemas/stringx v1.4.2/go.mod h1:+GhyHUFCjPCdi4BOTLuXI1O0VE0YZP1kn32XEcb9bk4=
+github.com/i9si-sistemas/stringx v1.5.7 h1:zfJtocfeX7HK46iufBFeIhqH6XCachCkYhQbCc2zUMk=
+github.com/i9si-sistemas/stringx v1.5.7/go.mod h1:+GhyHUFCjPCdi4BOTLuXI1O0VE0YZP1kn32XEcb9bk4=
