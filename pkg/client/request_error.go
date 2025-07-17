@@ -46,6 +46,10 @@ func (j JSON) Bytes() []byte {
 	return b
 }
 
+func (j JSON) Decode(v any) error {
+	return json.Decode(j.Bytes(), v)
+}
+
 func (err *RequestError) JSON() (payload JSON) {
 	_ = json.NewDecoder(err.Payload).Decode(&payload)
 	return
