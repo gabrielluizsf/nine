@@ -2,9 +2,9 @@ package client
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 
+	"github.com/i9si-sistemas/nine/internal/json"
 	"github.com/i9si-sistemas/nine/internal/xml"
 )
 
