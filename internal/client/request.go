@@ -24,7 +24,7 @@ func newRequest(ctx context.Context, method, url string, body io.Reader) (*http.
 // Returns:
 //   - *http.Response: the HTTP response received from the server.
 //   - error: an error if the request preparation or execution failed, or nil if it was successful.
-func (c *client) executeRequest(method, url string, options *public.Options) (*http.Response, *public.RequestError) {
+func (c *client) executeRequest(method, url string, options *public.Options) (*http.Response, error) {
 	var (
 		headers     = options.Headers
 		body        = options.Body

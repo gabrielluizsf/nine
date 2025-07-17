@@ -19,7 +19,9 @@ func TestNineClient(t *testing.T) {
 		t.Skip("httpbin.org is not available")
 	}
 	assertNoError := func(err error) {
-		assert.True(t, stringx.String(err.Error()).Includes("nil"))
+		if err != nil {
+			assert.True(t, stringx.String(err.Error()).Includes("nil"))
+		}
 	}
 	assertNoError(err)
 	defer res.Body.Close()
