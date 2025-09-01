@@ -10,3 +10,5 @@ github.com/i9si-sistemas/stringx v1.4.2 h1:x+O2N8szMRLwXD3EFarRc3Opq6iwmuDQDZGDN
 github.com/i9si-sistemas/stringx v1.4.2/go.mod h1:+GhyHUFCjPCdi4BOTLuXI1O0VE0YZP1kn32XEcb9bk4=
 github.com/i9si-sistemas/stringx v1.5.7 h1:zfJtocfeX7HK46iufBFeIhqH6XCachCkYhQbCc2zUMk=
 github.com/i9si-sistemas/stringx v1.5.7/go.mod h1:+GhyHUFCjPCdi4BOTLuXI1O0VE0YZP1kn32XEcb9bk4=
+github.com/i9si-sistemas/stringx v1.7.0 h1:aF36Wawm8D7tozx3Blj2rgIyBg28ENzMFnOzdO1iZZI=
+github.com/i9si-sistemas/stringx v1.7.0/go.mod h1:+GhyHUFCjPCdi4BOTLuXI1O0VE0YZP1kn32XEcb9bk4=
