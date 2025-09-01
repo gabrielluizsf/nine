@@ -2,6 +2,7 @@ package spy
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/i9si-sistemas/assert"
@@ -99,17 +100,26 @@ func TestServerSpy(t *testing.T) {
 
 	t.Run("ServeFiles records calls", func(t *testing.T) {
 		s := NewServer()
-		s.ServeFiles("/static", "./public")
+		prefix := "/static"
+		folder := "./public"
+		s.ServeFiles(prefix, folder)
 
 		assert.Equal(t, len(s.ServeFilesCalls), 1)
-		assert.Equal(t, "/static", s.ServeFilesCalls[0].Prefix)
-		assert.Equal(t, "./public", s.ServeFilesCalls[0].Root)
+		assert.Equal(t, s.ServeFilesCalls[0].Prefix, prefix)
+		assert.Equal(t, s.ServeFilesCalls[0].Root, folder)
+
+		s = NewServer()
+		fs := os.DirFS(folder)
+		s.ServeFilesWithFS(prefix, fs)
+		assert.Equal(t, len(s.ServeFilesCalls), 1)
+		assert.Equal(t, s.ServeFilesCalls[0].Prefix, prefix)
+		assert.Equal(t, s.ServeFilesCalls[0].Fs, fs)
 	})
 
 	t.Run("Test increments counter and returns TestServer", func(t *testing.T) {
 		s := NewServer()
 		ts := s.Test()
-		
+
 		assert.Equal(t, 1, s.TestCalls)
 		assert.Equal(t, ts, "\u0026{\u003cnil\u003e}")
 	})

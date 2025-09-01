@@ -1,6 +1,9 @@
 package server
 
-import "context"
+import (
+	"context"
+	"io/fs"
+)
 
 // RouteManager defines the interface for managing routes and groups.
 type RouteManager interface {
@@ -95,6 +98,20 @@ type Manager interface {
 	//
 	//server.ServeFiles("/static", "./static")
 	ServeFiles(endpoint string, dirPath string)
+
+	// ServeFilesWithFS serves static files from the provided fs.FS instance for a given URL pattern.
+	//
+	// This is especially useful when serving files embedded into the Go binary using the `embed` package.
+	//
+	//	//go:embed static/*
+	//	var staticFiles embed.FS
+	//
+	//	// Initialize a new server instance
+	//	server := nine.NewServer(os.Getenv("PORT"))
+	//
+	//	// Serve embedded files under the root URL pattern "/"
+	//	server.ServeFilesWithFS("/", staticFiles)
+	ServeFilesWithFS(endpoint string, fs fs.FS)
 	// Listen starts the HTTP server, listening on the configured address, and binds all registered routes and middleware.
 	Listen() error
 	// ListenTLS starts the HTTPS server, listening on the configured address, and binds all registered routes and middleware.
