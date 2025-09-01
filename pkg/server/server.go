@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"math"
 	"net"
@@ -67,6 +68,32 @@ func (s *Server) ServeFiles(pattern, path string) {
 	r := Router{
 		pattern:      s.routePattern(http.MethodGet, pattern),
 		handler:      ServeFiles(http.Dir(path)),
+		servingFiles: true,
+	}
+	s.registerRoute(r)
+}
+
+// ServeFilesWithFS serves static files from the provided fs.FS instance for a given URL pattern.
+//
+// This function associates a URL pattern with a virtual filesystem (fs.FS), enabling the server
+// to serve embedded or custom filesystem files when the pattern matches a request URL. 
+// It leverages the `http.FileServer` handler together with `http.FS` to map the contents of the
+// given filesystem to the specified pattern.
+//
+// This is especially useful when serving files embedded into the Go binary using the `embed` package.
+//
+//	//go:embed static/*
+//	var staticFiles embed.FS
+//
+//	// Initialize a new server instance
+//	server := nine.NewServer(os.Getenv("PORT"))
+//
+//	// Serve embedded files under the root URL pattern "/"
+//	server.ServeFilesWithFS("/", staticFiles)
+func (s *Server) ServeFilesWithFS(pattern string, fs fs.FS)  {
+	r := Router{
+		pattern:      s.routePattern(http.MethodGet, pattern),
+		handler:      ServeFiles(http.FS(fs)),
 		servingFiles: true,
 	}
 	s.registerRoute(r)
