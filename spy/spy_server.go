@@ -2,6 +2,7 @@ package spy
 
 import (
 	"context"
+	"io/fs"
 	"sync"
 
 	i9 "github.com/i9si-sistemas/nine/pkg/server"
@@ -47,6 +48,7 @@ type GroupCall struct {
 type ServeFilesCall struct {
 	Prefix string
 	Root   string
+	Fs     fs.FS
 }
 
 // NewServer creates a new server Spy instance
@@ -192,6 +194,16 @@ func (s *Server) ServeFiles(prefix, root string) {
 	})
 }
 
+func (s *Server) ServeFilesWithFS(prefix string, fs fs.FS) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.ServeFilesCalls = append(s.ServeFilesCalls, ServeFilesCall{
+		Prefix: prefix,
+		Fs:     fs,
+	})
+}
+
 func (s *Server) Test() *i9.TestServer {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -217,7 +229,7 @@ func (s *Server) ListenTLS(certFile, keyFile string) error {
 }
 
 func (s *Server) Port() (port string) {
-	return 
+	return
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
