@@ -19,6 +19,7 @@ import (
 
 	"github.com/i9si-sistemas/assert"
 	"github.com/i9si-sistemas/nine/internal/json"
+	"github.com/i9si-sistemas/stringx"
 )
 
 func TestRequestBody(t *testing.T) {
@@ -325,23 +326,39 @@ func TestMiddleware(t *testing.T) {
 
 func TestServeFiles(t *testing.T) {
 	dirPath := t.TempDir()
-	filePath := dirPath + "/index.html"
-	f, err := os.Create(filePath)
-	if err != nil {
-		t.Fatal(err)
+	initTestCase := func() (
+		s *Server,
+		r *http.Request,
+		b []byte,
+	) {
+		filePath := dirPath + "/index.html"
+		f, err := os.Create(filePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		b = []byte("<h1>Hello World</h1>")
+		f.Write(b)
+		r = httptest.NewRequest(http.MethodGet, "/", nil)
+		s = New(38913)
+		return
 	}
-	defer f.Close()
-	b := []byte("<h1>Hello World</h1>")
-	f.Write(b)
-	r := httptest.NewRequest(http.MethodGet, "/", nil)
-	s := New(38913)
-	s.ServeFiles("/", dirPath)
-	w := s.Test().Request(r)
-	result := w.Body.String()
-	expected := string(b)
-	if result != expected {
-		t.Fatalf("result: %s, expected: %s", result, expected)
-	}
+	t.Run("ServeFiles", func(t *testing.T) {
+		s, r, b := initTestCase()
+		s.ServeFiles("/", dirPath)
+		w := s.Test().Request(r)
+		result := w.Body
+		expected := string(b)
+		assert.True(t, stringx.New(result).Equal(expected))
+	})
+	t.Run("ServeFilesWithFS", func(t *testing.T) {
+		s, r, b := initTestCase()
+		s.ServeFilesWithFS("/", os.DirFS(dirPath))
+		w := s.Test().Request(r)
+		result := w.Body
+		expected := string(b)
+		assert.True(t, stringx.New(result).Equal(expected))
+	})
 }
 
 func TestServeFilesWithGzip(t *testing.T) {
