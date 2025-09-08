@@ -32,6 +32,7 @@ type Server struct {
 	addr, port        string
 	corsEnabled       bool
 	corsHandler       HandlerWithContext
+	listenFn          func() error
 }
 
 type Router struct {
@@ -41,11 +42,16 @@ type Router struct {
 	servingFiles bool
 }
 
+type ServerOpts struct {
+	Mux      HTTPRequestMultiplexer
+	ListenFn func() error
+}
+
 // New creates a new `Server` instance bound to the specified port.
 // It accepts both integer and string types for the port.
 func New[P int | string](
-	port P, 
-	mux ...HTTPRequestMultiplexer,
+	port P,
+	opts ...ServerOpts,
 ) (s *Server) {
 	s = &Server{
 		mux:        http.NewServeMux(),
@@ -53,8 +59,10 @@ func New[P int | string](
 		port:       fmt.Sprint(port),
 		httpServer: new(http.Server),
 	}
-	if len(mux) > 0 {
-		s.mux = mux[0]
+	if len(opts) > 0 {
+		customOptions := opts[0]
+		s.mux = customOptions.Mux
+		s.listenFn = customOptions.ListenFn
 	}
 	return
 }
@@ -192,6 +200,9 @@ func (s *Server) ListenTLS(certFile, keyFile string) error {
 }
 
 func (s *Server) listen(fn func() error) error {
+	if s.listenFn != nil {
+		return s.listenFn()
+	}
 	errCh := make(chan error)
 	server := s.httpServer
 	server.Handler = s.Handler()
