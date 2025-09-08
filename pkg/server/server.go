@@ -19,8 +19,13 @@ import (
 	"github.com/i9si-sistemas/stringx"
 )
 
+type HTTPRequestMultiplexer interface {
+	ServeHTTP(w http.ResponseWriter, r *http.Request)
+	Handle(endpoint string, handler http.Handler)
+}
+
 type Server struct {
-	mux               *http.ServeMux
+	mux               HTTPRequestMultiplexer
 	httpServer        *http.Server
 	routes            Routes
 	globalMiddlewares []Handler
@@ -38,13 +43,20 @@ type Router struct {
 
 // New creates a new `Server` instance bound to the specified port.
 // It accepts both integer and string types for the port.
-func New[P int | string](port P) *Server {
-	return &Server{
+func New[P int | string](
+	port P, 
+	mux ...HTTPRequestMultiplexer,
+) (s *Server) {
+	s = &Server{
 		mux:        http.NewServeMux(),
 		routes:     make([]Router, 0),
 		port:       fmt.Sprint(port),
 		httpServer: new(http.Server),
 	}
+	if len(mux) > 0 {
+		s.mux = mux[0]
+	}
+	return
 }
 
 func (s *Server) EnableCors(h HandlerWithContext) {
@@ -76,7 +88,7 @@ func (s *Server) ServeFiles(pattern, path string) {
 // ServeFilesWithFS serves static files from the provided fs.FS instance for a given URL pattern.
 //
 // This function associates a URL pattern with a virtual filesystem (fs.FS), enabling the server
-// to serve embedded or custom filesystem files when the pattern matches a request URL. 
+// to serve embedded or custom filesystem files when the pattern matches a request URL.
 // It leverages the `http.FileServer` handler together with `http.FS` to map the contents of the
 // given filesystem to the specified pattern.
 //
@@ -90,7 +102,7 @@ func (s *Server) ServeFiles(pattern, path string) {
 //
 //	// Serve embedded files under the root URL pattern "/"
 //	server.ServeFilesWithFS("/", staticFiles)
-func (s *Server) ServeFilesWithFS(pattern string, fs fs.FS)  {
+func (s *Server) ServeFilesWithFS(pattern string, fs fs.FS) {
 	r := Router{
 		pattern:      s.routePattern(http.MethodGet, pattern),
 		handler:      ServeFiles(http.FS(fs)),
